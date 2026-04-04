@@ -44,8 +44,8 @@ env-check:
 	@grep -q '^ADMIN_DOMAIN=' .env || { echo "ADMIN_DOMAIN manquant dans .env"; exit 1; }
 	@grep -q '^REVPROXY_APPS_NETWORK=' .env || { echo "REVPROXY_APPS_NETWORK manquant dans .env"; exit 1; }
 	@grep -q '^SWAG_NETWORK=' .env || { echo "SWAG_NETWORK manquant dans .env"; exit 1; }
-	@grep -q '^AUTHENTIK_SECRET_KEY=' .env || { echo "AUTHENTIK_SECRET_KEY manquant dans .env"; exit 1; }
-	@grep -q '^AUTHENTIK_POSTGRES_PASSWORD=' .env || { echo "AUTHENTIK_POSTGRES_PASSWORD manquant dans .env"; exit 1; }
+	@grep -q '^KEYCLOAK_SECRET_KEY=' .env || { echo "KEYCLOAK_SECRET_KEY manquant dans .env"; exit 1; }
+	@grep -q '^KEYCLOAK_POSTGRES_PASSWORD=' .env || { echo "KEYCLOAK_POSTGRES_PASSWORD manquant dans .env"; exit 1; }
 	@grep -q '^OPENOBSERVE_ROOT_PASSWORD=' .env || { echo "OPENOBSERVE_ROOT_PASSWORD manquant dans .env"; exit 1; }
 	@grep -q '^KOPIA_PASSWORD=' .env || { echo "KOPIA_PASSWORD manquant dans .env"; exit 1; }
 	@grep -q '^OPENOBSERVE_IMAGE=' .env || { echo "OPENOBSERVE_IMAGE manquant dans .env"; exit 1; }
@@ -71,10 +71,10 @@ init: docker-check env-check networks
 	@mkdir -p \
 		swag/config/nginx/site-confs \
 		swag/config/nginx/snippets \
-		authentik/data/postgres \
-		authentik/data/media \
-		authentik/data/custom-templates \
-		authentik/data/certs \
+		keycloak/data/postgres \
+		keycloak/data/media \
+		keycloak/data/custom-templates \
+		keycloak/data/certs \
 		portainer/data \
 		openobserve/data \
 		kopia/config \
@@ -86,7 +86,7 @@ init: docker-check env-check networks
 		crowdsec/acquis \
 		crowdsec/data \
 		crowdsec/bouncers
-	@touch authentik/data/.gitkeep portainer/data/.gitkeep openobserve/data/.gitkeep kopia/repository/.gitkeep crowdsec/data/.gitkeep
+	@touch keycloak/data/.gitkeep portainer/data/.gitkeep openobserve/data/.gitkeep kopia/repository/.gitkeep crowdsec/data/.gitkeep
 		@echo "Init OK."
 
 up: init

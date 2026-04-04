@@ -24,66 +24,37 @@ services:
       - swag_net
       - revproxy_apps
 
-  authentik-postgresql:
+  keycloak-postgresql:
     image: postgres:16
-    container_name: authentik-postgresql
+    container_name: keycloak-postgresql
     environment:
-      POSTGRES_DB: ${AUTHENTIK_POSTGRES_DB}
-      POSTGRES_USER: ${AUTHENTIK_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${AUTHENTIK_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${KEYCLOAK_DB}
+      POSTGRES_USER: ${KEYCLOAK_DB_USER}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
     volumes:
-      - ./authentik/data/postgres:/var/lib/postgresql/data
+      - ./keycloak/data/postgres:/var/lib/postgresql/data
     restart: unless-stopped
     networks:
       - revproxy_apps
 
-  authentik-redis:
-    image: redis:7-alpine
-    container_name: authentik-redis
-    restart: unless-stopped
-    networks:
-      - revproxy_apps
-
-  authentik-server:
-    image: ghcr.io/goauthentik/server:latest
-    container_name: authentik-server
+  keycloak:
+    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    container_name: keycloak
+    command:
+      - start
+      - --http-enabled=true
+      - --proxy-headers=xforwarded
+      - --hostname=${KEYCLOAK_HOSTNAME}
+      - --hostname-strict=true
     environment:
-      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
-      AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED}
-      AUTHENTIK_REDIS__HOST: authentik-redis
-      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
-      AUTHENTIK_POSTGRESQL__NAME: ${AUTHENTIK_POSTGRES_DB}
-      AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_POSTGRES_USER}
-      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_POSTGRES_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-postgresql:5432/${KEYCLOAK_DB}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     depends_on:
-      - authentik-postgresql
-      - authentik-redis
-    volumes:
-      - ./authentik/data/media:/media
-      - ./authentik/data/custom-templates:/templates
-    restart: unless-stopped
-    networks:
-      - revproxy_apps
-
-  authentik-worker:
-    image: ghcr.io/goauthentik/server:latest
-    container_name: authentik-worker
-    command: worker
-    environment:
-      AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY}
-      AUTHENTIK_ERROR_REPORTING__ENABLED: ${AUTHENTIK_ERROR_REPORTING__ENABLED}
-      AUTHENTIK_REDIS__HOST: authentik-redis
-      AUTHENTIK_POSTGRESQL__HOST: authentik-postgresql
-      AUTHENTIK_POSTGRESQL__NAME: ${AUTHENTIK_POSTGRES_DB}
-      AUTHENTIK_POSTGRESQL__USER: ${AUTHENTIK_POSTGRES_USER}
-      AUTHENTIK_POSTGRESQL__PASSWORD: ${AUTHENTIK_POSTGRES_PASSWORD}
-    depends_on:
-      - authentik-postgresql
-      - authentik-redis
-    volumes:
-      - ./authentik/data/media:/media
-      - ./authentik/data/certs:/certs
-      - ./authentik/data/custom-templates:/templates
+      - keycloak-postgresql
     restart: unless-stopped
     networks:
       - revproxy_apps
@@ -111,35 +82,7 @@ services:
       ZO_BASE_URI: ${OPENOBSERVE_BASE_URI}
       ZO_WEB_URL: ${OPENOBSERVE_PUBLIC_URL}
     volumes:
-      - ./openobserve/data:${OPENOBSERVE_DATA_DIR}
-    restart: unless-stopped
-    networks:
-      - revproxy_apps
-
-  kopia:
-    image: ${KOPIA_IMAGE}
-    container_name: kopia
-    command:
-      - server
-      - start
-      - --insecure
-      - --address=${KOPIA_SERVER_HOST}:${KOPIA_SERVER_PORT}
-      - --server-username=${KOPIA_USERNAME}
-      - --server-password=${KOPIA_PASSWORD}
-      - --config-file=${KOPIA_CONFIG_PATH}/repository.config
-      - --log-dir=${KOPIA_LOG_DIR}
-      - --cache-directory=${KOPIA_CACHE_DIR}
-    environment:
-      TZ: ${TZ}
-      USER: ${PUID}
-      KOPIA_PASSWORD: ${KOPIA_PASSWORD}
-    volumes:
-      - ./kopia/config:${KOPIA_CONFIG_PATH}
-      - ./kopia/logs:${KOPIA_LOG_DIR}
-      - ./kopia/cache:${KOPIA_CACHE_DIR}
-      - ./kopia/tmp:/tmp:shared
-      - ./kopia/sources:/sources:ro
-      - ./kopia/repository:${KOPIA_REPOSITORY_PATH}
+      - ./openobserve/data:/data
     restart: unless-stopped
     networks:
       - revproxy_apps
@@ -162,6 +105,7 @@ networks:
   swag_net:
     external: true
     name: ${SWAG_NETWORK}
+
   revproxy_apps:
     external: true
     name: ${REVPROXY_APPS_NETWORK}

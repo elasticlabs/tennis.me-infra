@@ -6,13 +6,13 @@ Zone reverse proxy / admin / sécurité pour `elasticlabs.co`.
 
 ## URLs cibles
 
-- https://auth.elasticlabs.co
-- https://admin.elasticlabs.co/portainer/
-- https://admin.elasticlabs.co/observe/
+- https://auth.elasticlabs.co  → Keycloak
+- https://admin.elasticlabs.co/portainer/ → Portainer
+- https://admin.elasticlabs.co/observe/ → OpenObserve Enterprise
 
 ---
 
-## Initialisation (à suivre dans cet ordre)
+## Initialisation (à suivre strictement)
 
 ### 1. Cloner le dépôt
 
@@ -21,24 +21,20 @@ git clone <repo-url>
 cd tennisme-revproxy
 ```
 
-### 2. Préparer le fichier `.env`
+---
+
+### 2. Préparer l’environnement
 
 ```bash
 make cp-env
-```
-
-👉 Puis éditer le fichier :
-
-```bash
 nano .env
 ```
 
-⚠️ **Obligatoire : changer les valeurs suivantes**
+⚠️ À modifier immédiatement :
 
-- AUTHENTIK_SECRET_KEY
-- AUTHENTIK_POSTGRES_PASSWORD
+- KEYCLOAK_DB_PASSWORD
+- KEYCLOAK_ADMIN_PASSWORD
 - OPENOBSERVE_ROOT_PASSWORD
-- KOPIA_PASSWORD
 
 ---
 
@@ -48,22 +44,21 @@ nano .env
 make config
 ```
 
-👉 Permet de valider :
-- variables d’environnement
-- cohérence du `docker-compose.yml`
-
 ---
 
-### 4. Initialiser l’environnement
+### 4. Initialiser l’infrastructure
 
 ```bash
 make init
 ```
 
-👉 Cette commande :
-- vérifie Docker
-- crée les réseaux Docker (`revproxy_apps`, `swag_net`)
-- crée les dossiers nécessaires
+Cela va :
+
+- vérifier Docker
+- créer les réseaux :
+  - revproxy_apps
+  - swag_net
+- créer l’arborescence nécessaire
 
 ---
 
@@ -75,7 +70,7 @@ make up
 
 ---
 
-### 6. Vérifier
+### 6. Vérifier le fonctionnement
 
 ```bash
 make ps
@@ -84,43 +79,36 @@ make logs
 
 ---
 
-## Commandes utiles
+## Accès aux services
 
-```bash
-make up
-make down
-make restart
-make logs
-make ps
-make pull
-```
+- Keycloak : https://auth.elasticlabs.co
+- Portainer : https://admin.elasticlabs.co/portainer/
+- OpenObserve : https://admin.elasticlabs.co/observe/
 
 ---
 
-## Arborescence
+## Architecture
 
-- `swag/` : reverse proxy Nginx / certificats / snippets
-- `authentik/` : IAM
-- `portainer/` : admin Docker
-- `openobserve/` : observabilité
-- `restic/` : sauvegardes
-- `crowdsec/` : sécurité
+- SWAG → reverse proxy Nginx + TLS
+- Keycloak → IAM / SSO
+- Portainer → admin Docker
+- OpenObserve Enterprise → logs / observabilité
+- CrowdSec → sécurité (non exposé)
 
 ---
 
 ## Notes importantes
 
-- `revproxy_apps` est le réseau applicatif principal.
-- aucun service n’est exposé directement (hors SWAG).
-- toute l’exposition passe par Nginx (SWAG).
-- Authentik est accessible via `auth.elasticlabs.co`.
-- Portainer et OpenObserve sont accessibles via `admin.elasticlabs.co` en sous-chemins.
+- aucun service n’est exposé directement sauf SWAG
+- tout passe par HTTPS
+- CrowdSec est administré via la console officielle
+- OpenObserve Enterprise fonctionne en mode self-hosted
 
 ---
 
 ## Prochaines étapes
 
-- configuration DNS challenge (Cloudflare)
-- intégration Authentik (forward auth)
-- ajout CrowdSec (bouncer nginx + firewall)
-- backups restic automatisés
+- config DNS (Cloudflare ou autre)
+- config Google login dans Keycloak
+- activer CrowdSec bouncer Nginx
+- envoyer logs Nginx → OpenObserve
