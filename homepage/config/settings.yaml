@@ -1,0 +1,6 @@
+title: Elasticlabs Admin
+description: Portail admin elasticlabs.co
+layout:
+  Infrastructure:
+    style: row
+    columns: 3

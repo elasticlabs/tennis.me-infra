@@ -27,6 +27,8 @@ services:
   keycloak-postgresql:
     image: postgres:16
     container_name: keycloak-postgresql
+    expose:
+      - "5432"
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB}
       POSTGRES_USER: ${KEYCLOAK_DB_USER}
@@ -40,6 +42,10 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
     container_name: keycloak
+    expose:
+      - "8080"
+      - "8443"
+      - "9000"
     command:
       - start
       - --http-enabled=true
@@ -65,6 +71,9 @@ services:
     command:
       - --base-url
       - /portainer
+    expose:
+      - "9000"
+      - "9443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./portainer/data:/data
@@ -75,6 +84,8 @@ services:
   openobserve:
     image: ${OPENOBSERVE_IMAGE}
     container_name: openobserve
+    expose:
+      - "5080"
     environment:
       ZO_DATA_DIR: ${OPENOBSERVE_DATA_DIR}
       ZO_ROOT_USER_EMAIL: ${OPENOBSERVE_ROOT_EMAIL}
@@ -90,6 +101,8 @@ services:
   crowdsec:
     image: crowdsecurity/crowdsec:latest
     container_name: crowdsec
+    expose:
+      - "8080"
     environment:
       TZ: ${TZ}
       ENROLL_KEY: ${CROWDSEC_ENROLL_KEY}
@@ -100,6 +113,50 @@ services:
     restart: unless-stopped
     networks:
       - revproxy_apps
+  
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    expose:
+      - "3000"
+    environment:
+      PUID: ${PUID}
+      PGID: ${PGID}
+      TZ: ${TZ}
+      HOMEPAGE_ALLOWED_HOSTS: ${ADMIN_DOMAIN}
+    volumes:
+      - ./homepage/config:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    networks:
+      - revproxy_apps
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:latest
+    container_name: oauth2-proxy
+    expose:
+      - "4180"
+    environment:
+      OAUTH2_PROXY_PROVIDER: keycloak-oidc
+      OAUTH2_PROXY_OIDC_ISSUER_URL: https://auth.elasticlabs.co/realms/elasticlabs
+      OAUTH2_PROXY_CLIENT_ID: admin-gateway
+      OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET}
+      OAUTH2_PROXY_REDIRECT_URL: https://admin.elasticlabs.co/oauth2/callback
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_UPSTREAMS: static://202
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_COOKIE_SECURE: "true"
+      OAUTH2_PROXY_COOKIE_DOMAINS: .elasticlabs.co
+      OAUTH2_PROXY_WHITELIST_DOMAINS: .elasticlabs.co
+      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
+      OAUTH2_PROXY_REVERSE_PROXY: "true"
+      OAUTH2_PROXY_SCOPE: "openid profile email"
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
+      OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
+    restart: unless-stopped
+    networks:
+      - revproxy_apps
+
 
 networks:
   swag_net:
