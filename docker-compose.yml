@@ -127,6 +127,8 @@ services:
       - ./:/workspace:ro
     entrypoint: ["/bin/sh", "-c", "sleep infinity"]
     restart: unless-stopped
+    networks:
+      - revproxy_apps
 
   crowdsec:
     image: crowdsecurity/crowdsec:latest
@@ -144,7 +146,9 @@ services:
 
 networks:
   swag_net:
+    external: true
     name: ${SWAG_NETWORK}
+
   revproxy_apps:
     external: true
     name: ${REVPROXY_APPS_NETWORK}
