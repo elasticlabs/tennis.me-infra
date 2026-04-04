@@ -166,6 +166,7 @@ services:
 
 networks:
   swag_net:
+    external: true
     name: ${SWAG_NETWORK}
   revproxy_apps:
     external: true
