@@ -47,7 +47,8 @@ env-check:
 	@grep -q '^AUTHENTIK_SECRET_KEY=' .env || { echo "AUTHENTIK_SECRET_KEY manquant dans .env"; exit 1; }
 	@grep -q '^AUTHENTIK_POSTGRES_PASSWORD=' .env || { echo "AUTHENTIK_POSTGRES_PASSWORD manquant dans .env"; exit 1; }
 	@grep -q '^OPENOBSERVE_ROOT_PASSWORD=' .env || { echo "OPENOBSERVE_ROOT_PASSWORD manquant dans .env"; exit 1; }
-	@grep -q '^RESTIC_PASSWORD=' .env || { echo "RESTIC_PASSWORD manquant dans .env"; exit 1; }
+	@grep -q '^KOPIA_PASSWORD=' .env || { echo "KOPIA_PASSWORD manquant dans .env"; exit 1; }
+	@grep -q '^OPENOBSERVE_IMAGE=' .env || { echo "OPENOBSERVE_IMAGE manquant dans .env"; exit 1; }
 	@echo ".env OK."
 
 docker-check:
@@ -76,13 +77,17 @@ init: docker-check env-check networks
 		authentik/data/certs \
 		portainer/data \
 		openobserve/data \
-		restic/repo \
-		restic/scripts \
+		kopia/config \
+		kopia/logs \
+		kopia/cache \
+		kopia/tmp \
+		kopia/sources \
+		kopia/repository \
 		crowdsec/acquis \
 		crowdsec/data \
 		crowdsec/bouncers
-	@touch authentik/data/.gitkeep portainer/data/.gitkeep openobserve/data/.gitkeep restic/repo/.gitkeep crowdsec/data/.gitkeep
-	@echo "Init OK."
+	@touch authentik/data/.gitkeep portainer/data/.gitkeep openobserve/data/.gitkeep kopia/repository/.gitkeep crowdsec/data/.gitkeep
+		@echo "Init OK."
 
 up: init
 	@docker compose up -d
