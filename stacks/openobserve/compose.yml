@@ -1,0 +1,15 @@
+services:
+  openobserve:
+    image: public.ecr.aws/zinclabs/openobserve:latest
+    container_name: openobserve
+    env_file:
+      - .env
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    networks:
+      - revproxy_apps
+
+networks:
+  revproxy_apps:
+    external: true
