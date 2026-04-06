@@ -2,20 +2,107 @@ logging {
   level = "info"
 }
 
+prometheus.exporter.self "alloy" {}
+
+prometheus.scrape "alloy" {
+  targets    = prometheus.exporter.self.alloy.targets
+  forward_to = []
+}
+
 loki.write "default" {
   endpoint {
     url = "http://loki:3100/loki/api/v1/push"
   }
 }
 
-loki.source.file "nginx_logs" {
-  targets = [
-    { __path__ = "/var/log/nginx/*.log" }
+local.file_match "docker_json" {
+  path_targets = [
+    {
+      __path__ = "/var/lib/docker/containers/*/*-json.log",
+      job      = "docker-json",
+    }
   ]
 }
 
-loki.process "nginx" {
-  forward_to = [loki.write.default.receiver]
+loki.source.file "docker_json" {
+  targets    = local.file_match.docker_json.targets
+  forward_to = [loki.process.normalize.receiver]
 }
 
-loki.source.file.nginx_logs -> loki.process.nginx
+local.file_match "swag_logs" {
+  path_targets = [
+    {
+      __path__ = "/var/log/swag/nginx/*.log",
+      job      = "swag-nginx",
+    }
+  ]
+}
+
+loki.source.file "swag_logs" {
+  targets    = local.file_match.swag_logs.targets
+  forward_to = [loki.process.normalize.receiver]
+}
+
+loki.process "normalize" {
+  stage.regex {
+    expression = ".*/(?P<container_id>[a-f0-9]{64})/(?P<filename>.*)-json.log"
+  }
+
+  stage.labels {
+    values = {
+      container_id = "container_id",
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"docker-json\"}"
+    stage.json {
+      expressions = {
+        stream = "stream",
+        log    = "log",
+        time   = "time",
+      }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"docker-json\"}"
+    stage.output {
+      source = "log"
+    }
+  }
+
+  stage.static_labels {
+    values = {
+      stack = "tennisme-revproxy",
+      host  = "rocky9",
+    }
+  }
+
+  forward_to = [loki.process.service_labels.receiver]
+}
+
+loki.process "service_labels" {
+  stage.match {
+    selector = "{job=\"docker-json\"} |= \"keycloak\""
+    stage.static_labels {
+      values = { service = "keycloak" }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"docker-json\"} |= \"oauth2-proxy\""
+    stage.static_labels {
+      values = { service = "oauth2-proxy" }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"docker-json\"} |= \"fail2ban\""
+    stage.static_labels {
+      values = { service = "fail2ban" }
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}

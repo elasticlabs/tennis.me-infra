@@ -76,19 +76,28 @@ init: docker-check env-check networks
 		keycloak/data/postgres \
 		homer/assets \
 		portainer/data \
-		grafana/data \
-		grafana/provisioning/datasources \
-		grafana/provisioning/dashboards \
-		grafana/provisioning/alerting \
-		loki/config \
-		loki/data \
-		prometheus/config \
-		prometheus/data \
-		alloy/config \
-		tempo/config \
-		tempo/data \
-		node-exporter/textfile
-	@touch keycloak/data/.gitkeep portainer/data/.gitkeep grafana/data/.gitkeep loki/data/.gitkeep prometheus/data/.gitkeep tempo/data/.gitkeep
+		grafana/grafana/data \
+		grafana/grafana/provisioning/datasources \
+		grafana/grafana/provisioning/dashboards \
+		grafana/grafana/provisioning/alerting \
+		grafana/loki/config \
+		grafana/loki/data \
+		grafana/prometheus/config \
+		grafana/prometheus/data \
+		grafana/alloy/config \
+		grafana/tempo/config \
+		grafana/tempo/data \
+		grafana/node-exporter/textfile
+
+	@touch \
+		grafana/loki/config/loki-config.yml \
+		grafana/prometheus/config/prometheus.yml \
+		grafana/alloy/config/config.alloy \
+		grafana/tempo/config/tempo.yaml \
+		grafana/grafana/provisioning/datasources/datasources.yml \
+		grafana/grafana/provisioning/dashboards/dashboard-provider.yml \
+		grafana/grafana/provisioning/alerting/alerts.yml
+
 	@echo "Init OK."
 
 up: init

@@ -1,0 +1,134 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: platform-alerts
+    folder: Platform
+    interval: 1m
+    rules:
+      - uid: host-disk-usage-high
+        title: Host disk usage high
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Prometheus
+            model:
+              expr: 100 - ((node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} * 100) / node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"})
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator: { params: [85], type: gt }
+        noDataState: NoData
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: Root filesystem usage above 85%
+
+      - uid: container-restarts-detected
+        title: Container restarts detected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 900, to: 0 }
+            datasourceUid: Prometheus
+            model:
+              expr: increase(container_start_time_seconds{name!=""}[15m])
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator: { params: [0], type: gt }
+        noDataState: NoData
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: One or more containers restarted in the last 15 minutes
+
+      - uid: fail2ban-ban-spike
+        title: Fail2ban ban spike
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Loki
+            model:
+              datasource:
+                type: loki
+                uid: Loki
+              expr: sum(count_over_time({job="docker-json", service="fail2ban"} |= "Ban "[5m]))
+              queryType: range
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator: { params: [10], type: gt }
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Fail2ban ban events above threshold
+
+      - uid: keycloak-auth-errors
+        title: Keycloak auth errors
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Loki
+            model:
+              datasource:
+                type: loki
+                uid: Loki
+              expr: sum(count_over_time({job="docker-json", service="keycloak"} |~ "(?i)error|failed|invalid"[5m]))
+              queryType: range
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator: { params: [5], type: gt }
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: Keycloak auth errors above threshold
+
+      - uid: oauth2-proxy-errors
+        title: oauth2-proxy errors
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: Loki
+            model:
+              datasource:
+                type: loki
+                uid: Loki
+              expr: sum(count_over_time({job="docker-json", service="oauth2-proxy"} |~ "(?i)error|denied|forbidden|unauthorized"[5m]))
+              queryType: range
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: threshold
+              conditions:
+                - evaluator: { params: [3], type: gt }
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: oauth2-proxy errors above threshold
