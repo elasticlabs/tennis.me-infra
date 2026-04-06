@@ -1,0 +1,69 @@
+apiVersion: 1
+
+prune: true
+
+datasources:
+  - name: Prometheus
+    uid: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+
+  - name: Loki
+    uid: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: false
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - name: trace_id
+          matcherRegex: '"trace[_-]?id":"?([A-Fa-f0-9]+)"?'
+          datasourceUid: Tempo
+          url: '$${__value.raw}'
+
+  - name: Tempo
+    uid: Tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      httpMethod: GET
+      tracesToLogsV2:
+        datasourceUid: Loki
+        spanStartTimeShift: "-5m"
+        spanEndTimeShift: "5m"
+        tags:
+          - key: service.name
+            value: service_name
+          - key: service.namespace
+            value: service_namespace
+          - key: pod.namespace
+            value: namespace
+          - key: pod.name
+            value: pod
+        filterByTraceID: true
+        filterBySpanID: true
+      tracesToMetrics:
+        datasourceUid: Prometheus
+        tags:
+          - key: service.name
+            value: service
+          - key: service.namespace
+            value: namespace
+        queries:
+          - name: Request rate
+            query: 'sum(rate(http_server_request_duration_seconds_count{service="$${__span.tags["service.name"]}"}[5m]))'
+      serviceMap:
+        datasourceUid: Prometheus
+      search:
+        hide: false
+      nodeGraph:
+        enabled: true
