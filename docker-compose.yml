@@ -27,8 +27,6 @@ services:
   keycloak-postgresql:
     image: postgres:16
     container_name: keycloak-postgresql
-    expose:
-      - "5432"
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB}
       POSTGRES_USER: ${KEYCLOAK_DB_USER}
@@ -36,22 +34,22 @@ services:
     volumes:
       - ./keycloak/data/postgres:/var/lib/postgresql/data
     restart: unless-stopped
+    expose:
+      - "5432"
     networks:
       - revproxy_apps
 
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
     container_name: keycloak
-    expose:
-      - "8080"
-      - "8443"
-      - "9000"
     command:
       - start
       - --http-enabled=true
       - --proxy-headers=xforwarded
       - --hostname=${KEYCLOAK_HOSTNAME}
       - --hostname-strict=true
+      - --metrics-enabled=true
+      - --health-enabled=true
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-postgresql:5432/${KEYCLOAK_DB}
@@ -62,86 +60,22 @@ services:
     depends_on:
       - keycloak-postgresql
     restart: unless-stopped
-    networks:
-      - revproxy_apps
-
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    command:
-      - --base-url
-      - /portainer
-    expose:
-      - "9000"
-      - "9443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./portainer/data:/data
-    restart: unless-stopped
-    networks:
-      - revproxy_apps
-
-  openobserve:
-    image: ${OPENOBSERVE_IMAGE}
-    container_name: openobserve
-    expose:
-      - "5080"
-    environment:
-      ZO_DATA_DIR: ${OPENOBSERVE_DATA_DIR}
-      ZO_ROOT_USER_EMAIL: ${OPENOBSERVE_ROOT_EMAIL}
-      ZO_ROOT_USER_PASSWORD: ${OPENOBSERVE_ROOT_PASSWORD}
-      ZO_BASE_URI: ${OPENOBSERVE_BASE_URI}
-      ZO_WEB_URL: ${OPENOBSERVE_PUBLIC_URL}
-    volumes:
-      - ./openobserve/data:/data
-    restart: unless-stopped
-    networks:
-      - revproxy_apps
-
-  crowdsec:
-    image: crowdsecurity/crowdsec:latest
-    container_name: crowdsec
     expose:
       - "8080"
-    environment:
-      TZ: ${TZ}
-      ENROLL_KEY: ${CROWDSEC_ENROLL_KEY}
-    volumes:
-      - ./crowdsec/acquis:/etc/crowdsec/acquis.d
-      - ./crowdsec/data:/var/lib/crowdsec/data
-      - /var/log:/var/log:ro
-    restart: unless-stopped
-    networks:
-      - revproxy_apps
-  
-  homepage:
-    image: ghcr.io/gethomepage/homepage:latest
-    container_name: homepage
-    expose:
-      - "3000"
-    environment:
-      PUID: ${PUID}
-      PGID: ${PGID}
-      TZ: ${TZ}
-      HOMEPAGE_ALLOWED_HOSTS: ${ADMIN_DOMAIN}
-    volumes:
-      - ./homepage/config:/app/config
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    restart: unless-stopped
+      - "8443"
+      - "9000"
     networks:
       - revproxy_apps
 
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:latest
     container_name: oauth2-proxy
-    expose:
-      - "4180"
     environment:
       OAUTH2_PROXY_PROVIDER: keycloak-oidc
-      OAUTH2_PROXY_OIDC_ISSUER_URL: https://auth.elasticlabs.co/realms/elasticlabs
-      OAUTH2_PROXY_CLIENT_ID: admin-gateway
+      OAUTH2_PROXY_OIDC_ISSUER_URL: ${OAUTH2_PROXY_OIDC_ISSUER_URL}
+      OAUTH2_PROXY_CLIENT_ID: ${OAUTH2_PROXY_CLIENT_ID}
       OAUTH2_PROXY_CLIENT_SECRET: ${OAUTH2_PROXY_CLIENT_SECRET}
-      OAUTH2_PROXY_REDIRECT_URL: https://admin.elasticlabs.co/oauth2/callback
+      OAUTH2_PROXY_REDIRECT_URL: ${OAUTH2_PROXY_REDIRECT_URL}
       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
       OAUTH2_PROXY_UPSTREAMS: static://202
       OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
@@ -154,15 +88,152 @@ services:
       OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
       OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
     restart: unless-stopped
+    expose:
+      - "4180"
     networks:
       - revproxy_apps
 
+  homer:
+    image: b4bz/homer:latest
+    container_name: homer
+    volumes:
+      - ./homer/assets:/www/assets
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - revproxy_apps
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    command:
+      - --base-url
+      - /portainer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./portainer/data:/data
+    restart: unless-stopped
+    expose:
+      - "9000"
+      - "9443"
+    networks:
+      - revproxy_apps
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    environment:
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL}
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - revproxy_apps
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki/config/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - ./loki/data:/loki
+    restart: unless-stopped
+    expose:
+      - "3100"
+    networks:
+      - revproxy_apps
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/data:/prometheus
+    restart: unless-stopped
+    expose:
+      - "9090"
+    networks:
+      - revproxy_apps
+
+  alloy:
+    image: grafana/alloy:latest
+    container_name: alloy
+    command: run /etc/alloy/config.alloy
+    volumes:
+      - ./alloy/config/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./swag/config/log:/var/log/swag:ro
+      - /var/log:/var/log:ro
+    restart: unless-stopped
+    expose:
+      - "12345"
+    networks:
+      - revproxy_apps
+
+  tempo:
+    image: grafana/tempo:latest
+    container_name: tempo
+    command: -config.file=/etc/tempo.yaml
+    volumes:
+      - ./tempo/config/tempo.yaml:/etc/tempo.yaml:ro
+      - ./tempo/data:/var/tempo
+    restart: unless-stopped
+    expose:
+      - "3200"
+      - "4317"
+      - "4318"
+    networks:
+      - revproxy_apps
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    command:
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/textfile
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+      - ./node-exporter/textfile:/textfile:ro
+    restart: unless-stopped
+    expose:
+      - "9100"
+    networks:
+      - revproxy_apps
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    restart: unless-stopped
+    expose:
+      - "8080"
+    networks:
+      - revproxy_apps
 
 networks:
   swag_net:
     external: true
     name: ${SWAG_NETWORK}
-
   revproxy_apps:
     external: true
     name: ${REVPROXY_APPS_NETWORK}

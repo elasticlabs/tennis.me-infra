@@ -1,0 +1,34 @@
+---
+title: "Elasticlabs Admin"
+subtitle: "tennisme-revproxy"
+header: true
+footer: false
+columns: 3
+connectivityCheck: false
+
+services:
+  - name: "Admin"
+    icon: "fas fa-shield-alt"
+    items:
+      - name: "Keycloak"
+        subtitle: "IAM / SSO"
+        url: "https://auth.elasticlabs.co"
+      - name: "Portainer"
+        subtitle: "Docker Administration"
+        url: "https://admin.elasticlabs.co/portainer/"
+      - name: "Grafana"
+        subtitle: "Observability"
+        url: "https://admin.elasticlabs.co/grafana/"
+      - name: "cAdvisor"
+        subtitle: "Container metrics and runtime view"
+        url: "https://admin.elasticlabs.co/cadvisor/"
+
+  - name: "Platform"
+    icon: "fas fa-layer-group"
+    items:
+      - name: "Docs"
+        subtitle: "Repository documentation"
+        url: "https://github.com/elasticlabs/tennisme-revproxy"
+      - name: "Labs"
+        subtitle: "Training and demo area"
+        url: "https://labs.elasticlabs.co"
