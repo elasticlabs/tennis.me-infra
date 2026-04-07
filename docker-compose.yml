@@ -1,7 +1,7 @@
 services:
   swag:
     image: linuxserver/swag:latest
-    container_name: swag
+    container_name: ${COMPOSE_PROJECT_NAME}_swag
     environment:
       PUID: ${PUID}
       PGID: ${PGID}
@@ -24,7 +24,7 @@ services:
 
   keycloak-postgresql:
     image: postgres:16
-    container_name: keycloak-postgresql
+    container_name: ${COMPOSE_PROJECT_NAME}_keycloak-postgresql
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB}
       POSTGRES_USER: ${KEYCLOAK_DB_USER}
@@ -39,7 +39,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
-    container_name: keycloak
+    container_name: ${COMPOSE_PROJECT_NAME}_keycloak
     command:
       - start
       - --http-enabled=true
@@ -67,7 +67,7 @@ services:
 
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:latest
-    container_name: oauth2-proxy
+    container_name: ${COMPOSE_PROJECT_NAME}_oauth2-proxy
     environment:
       OAUTH2_PROXY_PROVIDER: keycloak-oidc
       OAUTH2_PROXY_OIDC_ISSUER_URL: https://auth.${BASE_DOMAIN}/realms/elasticlabs
@@ -94,7 +94,7 @@ services:
   homer:
     build:
       context: ./homer
-    container_name: homer
+    container_name: ${COMPOSE_PROJECT_NAME}_homer
     restart: unless-stopped
     expose:
       - "8080"
@@ -103,7 +103,7 @@ services:
 
   portainer:
     image: portainer/portainer-ce:latest
-    container_name: portainer
+    container_name: ${COMPOSE_PROJECT_NAME}_portainer
     command:
       - --base-url
       - /portainer
@@ -120,7 +120,7 @@ services:
   grafana:
     build:
       context: ./grafana/grafana
-    container_name: grafana
+    container_name: ${COMPOSE_PROJECT_NAME}_grafana
     environment:
       GF_SERVER_ROOT_URL: https://admin.${BASE_DOMAIN}/grafana/
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
@@ -136,7 +136,7 @@ services:
   loki:
     build:
       context: ./grafana/loki
-    container_name: loki
+    container_name: ${COMPOSE_PROJECT_NAME}_loki
     volumes:
       - loki_data:/loki
     restart: unless-stopped
@@ -148,7 +148,7 @@ services:
   prometheus:
     build:
       context: ./grafana/prometheus
-    container_name: prometheus
+    container_name: ${COMPOSE_PROJECT_NAME}_prometheus
     volumes:
       - prometheus_data:/prometheus
     restart: unless-stopped
@@ -160,7 +160,7 @@ services:
   alloy:
     build:
       context: ./grafana/alloy
-    container_name: alloy
+    container_name: ${COMPOSE_PROJECT_NAME}_alloy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
@@ -174,7 +174,7 @@ services:
   tempo:
     build:
       context: ./grafana/tempo
-    container_name: tempo
+    container_name: ${COMPOSE_PROJECT_NAME}_tempo
     volumes:
       - tempo_data:/var/tempo
     restart: unless-stopped
@@ -187,7 +187,7 @@ services:
 
   node-exporter:
     image: prom/node-exporter:latest
-    container_name: node-exporter
+    container_name: ${COMPOSE_PROJECT_NAME}_node-exporter
     command:
       - --path.rootfs=/host
       - --collector.textfile.directory=/textfile
@@ -203,7 +203,7 @@ services:
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
-    container_name: cadvisor
+    container_name: ${COMPOSE_PROJECT_NAME}_cadvisor
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
@@ -222,7 +222,7 @@ services:
   files:
     build:
       context: ./filebrowser
-    container_name: files
+    container_name: ${COMPOSE_PROJECT_NAME}_files
     environment:
       FILEBROWSER_BASEURL: /files
       FILEBROWSER_ADDRESS: 0.0.0.0
