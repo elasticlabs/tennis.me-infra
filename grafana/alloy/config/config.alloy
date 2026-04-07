@@ -19,5 +19,15 @@ local.file_match "docker_json" {
 
 loki.source.file "docker_json" {
   targets    = local.file_match.docker_json.targets
+  forward_to = [loki.process.normalize.receiver]
+}
+
+loki.process "normalize" {
+  stage.static_labels {
+    values = {
+      stack = "tennisme-revproxy",
+      host  = "rocky9",
+    }
+  }
   forward_to = [loki.write.default.receiver]
 }
