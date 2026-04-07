@@ -11,23 +11,25 @@ LABS_DOMAIN ?= labs.$(BASE_DOMAIN)
 
 NETWORKS := $(REVPROXY_APPS_NETWORK) $(SWAG_NETWORK)
 
-.PHONY: help cp-env env-check docker-check networks init up down restart ps logs pull config clean
+.PHONY: help cp-env env-check docker-check networks init up down restart ps logs pull build config clean secrets-bootstrap
 
 help:
 	@echo ""
 	@echo "Bootstrap"
-	@echo "  make cp-env       -> create .env from .env.example if missing"
-	@echo "  make env-check    -> validate .env"
-	@echo "  make init         -> validate docker + create networks + directories"
+	@echo "  make cp-env            -> create .env from .env.example if missing"
+	@echo "  make env-check         -> validate .env"
+	@echo "  make secrets-bootstrap -> generate secrets only if CHANGE_ME exists in .env"
+	@echo "  make init              -> validate docker + create networks + directories"
 	@echo ""
 	@echo "Lifecycle"
-	@echo "  make up           -> start the stack"
-	@echo "  make down         -> stop the stack"
-	@echo "  make restart      -> restart the stack"
-	@echo "  make ps           -> list containers"
-	@echo "  make logs         -> follow logs"
-	@echo "  make pull         -> pull images"
-	@echo "  make config       -> validate compose config"
+	@echo "  make build             -> build local images"
+	@echo "  make up                -> start the stack"
+	@echo "  make down              -> stop the stack"
+	@echo "  make restart           -> restart the stack"
+	@echo "  make ps                -> list containers"
+	@echo "  make logs              -> follow logs"
+	@echo "  make pull              -> pull base images"
+	@echo "  make config            -> validate compose config"
 	@echo ""
 	@echo "Derived domains"
 	@echo "  AUTH_DOMAIN=$(AUTH_DOMAIN)"
@@ -53,6 +55,55 @@ env-check:
 	@grep -q '^GRAFANA_ADMIN_PASSWORD=' .env || { echo "GRAFANA_ADMIN_PASSWORD missing"; exit 1; }
 	@echo ".env OK."
 
+secrets-bootstrap:
+	@test -f .env || { echo ".env missing. Run: make cp-env"; exit 1; }
+	@if grep -Eqi 'changeme|change_me|change-me' .env; then \
+		mkdir -p .tmp; \
+		DB_PASS="$$(openssl rand -base64 24)"; \
+		KC_ADMIN_PASS="$$(openssl rand -base64 24)"; \
+		OAUTH_CLIENT_SECRET="$$(openssl rand -base64 32)"; \
+		OAUTH_COOKIE_SECRET="$$(openssl rand -base64 32)"; \
+		GRAFANA_ADMIN_PASS="$$(openssl rand -base64 24)"; \
+		cat > .tmp/secrets.bootstrap.md <<EOF
+# tennisme-revproxy bootstrap secrets
+
+## KeepassXC entries to create
+
+### keycloak-db
+- username: $(KEYCLOAK_DB_USER)
+- password: $$DB_PASS
+
+### keycloak-admin
+- username: $(KEYCLOAK_ADMIN_USER)
+- password: $$KC_ADMIN_PASS
+
+### oauth2-proxy-client
+- username: $(OAUTH2_PROXY_CLIENT_ID)
+- password: $$OAUTH_CLIENT_SECRET
+
+### oauth2-proxy-cookie
+- username: cookie-secret
+- password: $$OAUTH_COOKIE_SECRET
+
+### grafana-admin
+- username: $(GRAFANA_ADMIN_USER)
+- password: $$GRAFANA_ADMIN_PASS
+
+## Suggested .env values
+
+KEYCLOAK_DB_PASSWORD=$$DB_PASS
+KEYCLOAK_ADMIN_PASSWORD=$$KC_ADMIN_PASS
+OAUTH2_PROXY_CLIENT_SECRET=$$OAUTH_CLIENT_SECRET
+OAUTH2_PROXY_COOKIE_SECRET=$$OAUTH_COOKIE_SECRET
+GRAFANA_ADMIN_PASSWORD=$$GRAFANA_ADMIN_PASS
+EOF
+		echo ""; \
+		echo "Bootstrap secrets written to .tmp/secrets.bootstrap.md"; \
+		echo "Copy them into KeePassXC, then into .env"; \
+	else \
+		echo "No CHANGE_ME occurrence found in .env. Secrets bootstrap skipped."; \
+	fi
+
 docker-check:
 	@command -v docker >/dev/null 2>&1 || { echo "docker missing"; exit 1; }
 	@docker info >/dev/null 2>&1 || { echo "docker daemon unavailable"; exit 1; }
@@ -71,6 +122,7 @@ networks: env-check
 
 init: docker-check env-check networks
 	@mkdir -p \
+		.tmp \
 		swag/config/nginx/site-confs \
 		swag/config/nginx/snippets \
 		homer/assets \
@@ -82,7 +134,6 @@ init: docker-check env-check networks
 		grafana/alloy/config \
 		grafana/tempo/config \
 		filebrowser
-
 	@touch \
 		grafana/loki/config/loki-config.yml \
 		grafana/prometheus/config/prometheus.yml \
@@ -91,8 +142,10 @@ init: docker-check env-check networks
 		grafana/grafana/provisioning/datasources/datasources.yml \
 		grafana/grafana/provisioning/dashboards/dashboard-provider.yml \
 		grafana/grafana/provisioning/alerting/alerts.yml
-
 	@echo "Init OK."
+
+build: init
+	@docker compose build
 
 up: init
 	@docker compose up -d

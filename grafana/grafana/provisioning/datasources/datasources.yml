@@ -10,9 +10,6 @@ datasources:
     url: http://prometheus:9090
     isDefault: true
     editable: false
-    jsonData:
-      httpMethod: POST
-      manageAlerts: true
 
   - name: Loki
     uid: Loki
@@ -20,13 +17,6 @@ datasources:
     access: proxy
     url: http://loki:3100
     editable: false
-    jsonData:
-      maxLines: 2000
-      derivedFields:
-        - name: trace_id
-          matcherRegex: 'trace[_-]?id[=": ]+([A-Fa-f0-9]+)'
-          datasourceUid: Tempo
-          url: '$${__value.raw}'
 
   - name: Tempo
     uid: Tempo
@@ -34,27 +24,3 @@ datasources:
     access: proxy
     url: http://tempo:3200
     editable: false
-    jsonData:
-      tracesToLogsV2:
-        datasourceUid: Loki
-        spanStartTimeShift: "-10m"
-        spanEndTimeShift: "10m"
-        filterByTraceID: true
-        filterBySpanID: true
-        tags:
-          - key: service.name
-            value: service_name
-      tracesToMetrics:
-        datasourceUid: Prometheus
-        tags:
-          - key: service.name
-            value: service
-        queries:
-          - name: Request rate
-            query: 'sum(rate(http_server_request_duration_seconds_count{service="$${__span.tags["service.name"]}"}[5m]))'
-      serviceMap:
-        datasourceUid: Prometheus
-      search:
-        hide: false
-      nodeGraph:
-        enabled: true

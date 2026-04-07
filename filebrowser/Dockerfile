@@ -1,6 +1,3 @@
 FROM filebrowser/filebrowser:v2
-
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
+COPY --chmod=755 docker-entrypoint.sh /docker-entrypoint.sh
 ENTRYPOINT ["/docker-entrypoint.sh"]

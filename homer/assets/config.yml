@@ -25,13 +25,3 @@ services:
       - name: "Files"
         subtitle: "Named volumes browser"
         url: "https://admin.elasticlabs.co/files/"
-
-  - name: "Platform"
-    icon: "fas fa-layer-group"
-    items:
-      - name: "Docs"
-        subtitle: "Repository documentation"
-        url: "https://github.com/elasticlabs/tennisme-revproxy"
-      - name: "Labs"
-        subtitle: "Training and demo area"
-        url: "https://labs.elasticlabs.co"

@@ -1,9 +1,8 @@
 services:
   swag:
-    image: lscr.io/linuxserver/swag:latest
+    build:
+      context: ./swag
     container_name: swag
-    cap_add:
-      - NET_ADMIN
     environment:
       PUID: ${PUID}
       PGID: ${PGID}
@@ -94,10 +93,9 @@ services:
       - revproxy_apps
 
   homer:
-    image: b4bz/homer:latest
+    build:
+      context: ./homer
     container_name: homer
-    volumes:
-      - ./homer/assets:/www/assets
     restart: unless-stopped
     expose:
       - "8080"
@@ -121,7 +119,8 @@ services:
       - revproxy_apps
 
   grafana:
-    image: grafana/grafana:latest
+    build:
+      context: ./grafana/grafana
     container_name: grafana
     environment:
       GF_SERVER_ROOT_URL: https://admin.${BASE_DOMAIN}/grafana/
@@ -129,7 +128,6 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/grafana/provisioning:/etc/grafana/provisioning:ro
     restart: unless-stopped
     expose:
       - "3000"
@@ -137,11 +135,10 @@ services:
       - revproxy_apps
 
   loki:
-    image: grafana/loki:latest
+    build:
+      context: ./grafana/loki
     container_name: loki
-    command: -config.file=/etc/loki/loki-config.yml
     volumes:
-      - ./grafana/loki/config/loki-config.yml:/etc/loki/loki-config.yml:ro
       - loki_data:/loki
     restart: unless-stopped
     expose:
@@ -150,14 +147,10 @@ services:
       - revproxy_apps
 
   prometheus:
-    image: prom/prometheus:latest
+    build:
+      context: ./grafana/prometheus
     container_name: prometheus
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --web.enable-lifecycle
     volumes:
-      - ./grafana/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     restart: unless-stopped
     expose:
@@ -166,11 +159,10 @@ services:
       - revproxy_apps
 
   alloy:
-    image: grafana/alloy:latest
+    build:
+      context: ./grafana/alloy
     container_name: alloy
-    command: run /etc/alloy/config.alloy
     volumes:
-      - ./grafana/alloy/config/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/log:/var/log:ro
@@ -181,11 +173,10 @@ services:
       - revproxy_apps
 
   tempo:
-    image: grafana/tempo:latest
+    build:
+      context: ./grafana/tempo
     container_name: tempo
-    command: -config.file=/etc/tempo.yaml
     volumes:
-      - ./grafana/tempo/config/tempo.yaml:/etc/tempo.yaml:ro
       - tempo_data:/var/tempo
     restart: unless-stopped
     expose:
