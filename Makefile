@@ -18,7 +18,7 @@ help:
 	@echo "Bootstrap"
 	@echo "  make cp-env            -> create .env from .env.example if missing"
 	@echo "  make env-check         -> validate .env"
-	@echo "  make secrets-bootstrap -> generate secrets only if CHANGE_ME exists in .env"
+	@echo "  make secrets-bootstrap -> generate secrets in ./.tmp/secrets.md if CHANGE_ME exists in .env"
 	@echo "  make init              -> validate docker + create networks + directories"
 	@echo ""
 	@echo "Lifecycle"
