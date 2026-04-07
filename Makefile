@@ -64,39 +64,39 @@ secrets-bootstrap:
 		OAUTH_CLIENT_SECRET="$$(openssl rand -base64 32)"; \
 		OAUTH_COOKIE_SECRET="$$(openssl rand -base64 32)"; \
 		GRAFANA_ADMIN_PASS="$$(openssl rand -base64 24)"; \
-		cat > .tmp/secrets.bootstrap.md <<EOF
-# tennisme-revproxy bootstrap secrets
-
-## KeepassXC entries to create
-
-### keycloak-db
-- username: $(KEYCLOAK_DB_USER)
-- password: $$DB_PASS
-
-### keycloak-admin
-- username: $(KEYCLOAK_ADMIN_USER)
-- password: $$KC_ADMIN_PASS
-
-### oauth2-proxy-client
-- username: $(OAUTH2_PROXY_CLIENT_ID)
-- password: $$OAUTH_CLIENT_SECRET
-
-### oauth2-proxy-cookie
-- username: cookie-secret
-- password: $$OAUTH_COOKIE_SECRET
-
-### grafana-admin
-- username: $(GRAFANA_ADMIN_USER)
-- password: $$GRAFANA_ADMIN_PASS
-
-## Suggested .env values
-
-KEYCLOAK_DB_PASSWORD=$$DB_PASS
-KEYCLOAK_ADMIN_PASSWORD=$$KC_ADMIN_PASS
-OAUTH2_PROXY_CLIENT_SECRET=$$OAUTH_CLIENT_SECRET
-OAUTH2_PROXY_COOKIE_SECRET=$$OAUTH_COOKIE_SECRET
-GRAFANA_ADMIN_PASSWORD=$$GRAFANA_ADMIN_PASS
-EOF
+		{ \
+			printf '%s\n' '# tennisme-revproxy bootstrap secrets'; \
+			printf '\n'; \
+			printf '%s\n' '## KeepassXC entries to create'; \
+			printf '\n'; \
+			printf '%s\n' '### keycloak-db'; \
+			printf '%s\n' '- username: $(KEYCLOAK_DB_USER)'; \
+			printf '%s\n' "- password: $$DB_PASS"; \
+			printf '\n'; \
+			printf '%s\n' '### keycloak-admin'; \
+			printf '%s\n' '- username: $(KEYCLOAK_ADMIN_USER)'; \
+			printf '%s\n' "- password: $$KC_ADMIN_PASS"; \
+			printf '\n'; \
+			printf '%s\n' '### oauth2-proxy-client'; \
+			printf '%s\n' '- username: $(OAUTH2_PROXY_CLIENT_ID)'; \
+			printf '%s\n' "- password: $$OAUTH_CLIENT_SECRET"; \
+			printf '\n'; \
+			printf '%s\n' '### oauth2-proxy-cookie'; \
+			printf '%s\n' '- username: cookie-secret'; \
+			printf '%s\n' "- password: $$OAUTH_COOKIE_SECRET"; \
+			printf '\n'; \
+			printf '%s\n' '### grafana-admin'; \
+			printf '%s\n' '- username: $(GRAFANA_ADMIN_USER)'; \
+			printf '%s\n' "- password: $$GRAFANA_ADMIN_PASS"; \
+			printf '\n'; \
+			printf '%s\n' '## Suggested .env values'; \
+			printf '\n'; \
+			printf '%s\n' "KEYCLOAK_DB_PASSWORD=$$DB_PASS"; \
+			printf '%s\n' "KEYCLOAK_ADMIN_PASSWORD=$$KC_ADMIN_PASS"; \
+			printf '%s\n' "OAUTH2_PROXY_CLIENT_SECRET=$$OAUTH_CLIENT_SECRET"; \
+			printf '%s\n' "OAUTH2_PROXY_COOKIE_SECRET=$$OAUTH_COOKIE_SECRET"; \
+			printf '%s\n' "GRAFANA_ADMIN_PASSWORD=$$GRAFANA_ADMIN_PASS"; \
+		} > .tmp/secrets.bootstrap.md; \
 		echo ""; \
 		echo "Bootstrap secrets written to .tmp/secrets.bootstrap.md"; \
 		echo "Copy them into KeePassXC, then into .env"; \
