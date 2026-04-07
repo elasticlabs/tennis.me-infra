@@ -1,7 +1,6 @@
 services:
   swag:
-    build:
-      context: ./swag
+    image: linuxserver/swag:latest
     container_name: swag
     environment:
       PUID: ${PUID}
@@ -17,7 +16,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - swag_config:/config
+      - ./swag/config:/config
     restart: unless-stopped
     networks:
       - swag_net
@@ -238,7 +237,7 @@ services:
       - loki_data:/srv/loki:ro
       - prometheus_data:/srv/prometheus:ro
       - tempo_data:/srv/tempo:ro
-      - swag_config:/srv/swag:ro
+      - ./swag/config:/srv/swag:ro
       - files_database:/database
       - files_config:/config
     restart: unless-stopped
@@ -256,7 +255,6 @@ networks:
     name: ${REVPROXY_APPS_NETWORK}
 
 volumes:
-  swag_config:
   keycloak_postgres_data:
   portainer_data:
   grafana_data:
