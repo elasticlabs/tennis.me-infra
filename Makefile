@@ -73,21 +73,15 @@ init: docker-check env-check networks
 	@mkdir -p \
 		swag/config/nginx/site-confs \
 		swag/config/nginx/snippets \
-		keycloak/data/postgres \
 		homer/assets \
-		portainer/data \
-		grafana/grafana/data \
 		grafana/grafana/provisioning/datasources \
 		grafana/grafana/provisioning/dashboards \
 		grafana/grafana/provisioning/alerting \
 		grafana/loki/config \
-		grafana/loki/data \
 		grafana/prometheus/config \
-		grafana/prometheus/data \
 		grafana/alloy/config \
 		grafana/tempo/config \
-		grafana/tempo/data \
-		grafana/node-exporter/textfile
+		filebrowser
 
 	@touch \
 		grafana/loki/config/loki-config.yml \
@@ -102,6 +96,15 @@ init: docker-check env-check networks
 
 up: init
 	@docker compose up -d
+	@echo ""
+	@echo "Available URLs"
+	@echo "  Auth        : https://$(AUTH_DOMAIN)"
+	@echo "  Admin       : https://$(ADMIN_DOMAIN)/"
+	@echo "  Portainer   : https://$(ADMIN_DOMAIN)/portainer/"
+	@echo "  Grafana     : https://$(ADMIN_DOMAIN)/grafana/"
+	@echo "  cAdvisor    : https://$(ADMIN_DOMAIN)/cadvisor/"
+	@echo "  Files       : https://$(ADMIN_DOMAIN)/files/"
+	@echo "  Labs        : https://$(LABS_DOMAIN)/"
 
 down:
 	@docker compose down
@@ -109,6 +112,15 @@ down:
 restart:
 	@docker compose down
 	@docker compose up -d
+	@echo ""
+	@echo "Available URLs"
+	@echo "  Auth        : https://$(AUTH_DOMAIN)"
+	@echo "  Admin       : https://$(ADMIN_DOMAIN)/"
+	@echo "  Portainer   : https://$(ADMIN_DOMAIN)/portainer/"
+	@echo "  Grafana     : https://$(ADMIN_DOMAIN)/grafana/"
+	@echo "  cAdvisor    : https://$(ADMIN_DOMAIN)/cadvisor/"
+	@echo "  Files       : https://$(ADMIN_DOMAIN)/files/"
+	@echo "  Labs        : https://$(LABS_DOMAIN)/"
 
 ps:
 	@docker compose ps

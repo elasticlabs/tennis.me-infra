@@ -18,7 +18,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./swag/config:/config
+      - swag_config:/config
     restart: unless-stopped
     networks:
       - swag_net
@@ -32,7 +32,7 @@ services:
       POSTGRES_USER: ${KEYCLOAK_DB_USER}
       POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
     volumes:
-      - ./keycloak/data/postgres:/var/lib/postgresql/data
+      - keycloak_postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     expose:
       - "5432"
@@ -112,7 +112,7 @@ services:
       - /portainer
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./portainer/data:/data
+      - portainer_data:/data
     restart: unless-stopped
     expose:
       - "9000"
@@ -128,8 +128,8 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
     volumes:
-      - ./grafana/data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana_data:/var/lib/grafana
+      - ./grafana/grafana/provisioning:/etc/grafana/provisioning:ro
     restart: unless-stopped
     expose:
       - "3000"
@@ -141,8 +141,8 @@ services:
     container_name: loki
     command: -config.file=/etc/loki/loki-config.yml
     volumes:
-      - ./loki/config/loki-config.yml:/etc/loki/loki-config.yml:ro
-      - ./loki/data:/loki
+      - ./grafana/loki/config/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
     restart: unless-stopped
     expose:
       - "3100"
@@ -157,8 +157,8 @@ services:
       - --storage.tsdb.path=/prometheus
       - --web.enable-lifecycle
     volumes:
-      - ./prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/data:/prometheus
+      - ./grafana/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     restart: unless-stopped
     expose:
       - "9090"
@@ -170,10 +170,9 @@ services:
     container_name: alloy
     command: run /etc/alloy/config.alloy
     volumes:
-      - ./alloy/config/config.alloy:/etc/alloy/config.alloy:ro
+      - ./grafana/alloy/config/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - ./swag/config/log:/var/log/swag:ro
       - /var/log:/var/log:ro
     restart: unless-stopped
     expose:
@@ -186,8 +185,8 @@ services:
     container_name: tempo
     command: -config.file=/etc/tempo.yaml
     volumes:
-      - ./tempo/config/tempo.yaml:/etc/tempo.yaml:ro
-      - ./tempo/data:/var/tempo
+      - ./grafana/tempo/config/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
     restart: unless-stopped
     expose:
       - "3200"
@@ -205,7 +204,7 @@ services:
     pid: host
     volumes:
       - /:/host:ro,rslave
-      - ./node-exporter/textfile:/textfile:ro
+      - ./grafana/node-exporter/textfile:/textfile:ro
     restart: unless-stopped
     expose:
       - "9100"
@@ -230,6 +229,33 @@ services:
     networks:
       - revproxy_apps
 
+  files:
+    build:
+      context: ./filebrowser
+    container_name: files
+    environment:
+      FILEBROWSER_BASEURL: /files
+      FILEBROWSER_ADDRESS: 0.0.0.0
+      FILEBROWSER_PORT: "80"
+      FILEBROWSER_ROOT: /srv
+      FILEBROWSER_LOG: stdout
+      FILEBROWSER_NOAUTH: "true"
+    volumes:
+      - keycloak_postgres_data:/srv/keycloak-postgres:ro
+      - portainer_data:/srv/portainer:ro
+      - grafana_data:/srv/grafana:ro
+      - loki_data:/srv/loki:ro
+      - prometheus_data:/srv/prometheus:ro
+      - tempo_data:/srv/tempo:ro
+      - swag_config:/srv/swag:ro
+      - files_database:/database
+      - files_config:/config
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - revproxy_apps
+
 networks:
   swag_net:
     external: true
@@ -237,3 +263,14 @@ networks:
   revproxy_apps:
     external: true
     name: ${REVPROXY_APPS_NETWORK}
+
+volumes:
+  swag_config:
+  keycloak_postgres_data:
+  portainer_data:
+  grafana_data:
+  loki_data:
+  prometheus_data:
+  tempo_data:
+  files_database:
+  files_config:
