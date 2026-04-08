@@ -226,11 +226,14 @@ services:
     environment:
       PUID: $(id -u)
       PGID: $(id -g)
-      FILEBROWSER_BASEURL: /data
-      FILEBROWSER_ADDRESS: 0.0.0.0
-      FILEBROWSER_PORT: "80"
       FILEBROWSER_ROOT: /srv
-      FILEBROWSER_LOG: stdout
+    command: >
+      --database /database/filebrowser.db
+      --root /srv
+      --baseurl /data
+      --address 0.0.0.0
+      --port 80
+      --log stdout
     volumes:
       - keycloak_postgres_data:/srv/keycloak-postgres:ro
       - portainer_data:/srv/portainer:ro
