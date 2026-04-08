@@ -221,10 +221,11 @@ services:
       - revproxy_apps
 
   filebrowser:
-    build:
-      context: ./filebrowser
+    image: filebrowser/filebrowser:latest
     container_name: ${COMPOSE_PROJECT_NAME}_filebrowser
     environment:
+      PUID: $(id -u)
+      PGID: $(id -g)
       FILEBROWSER_BASEURL: /data
       FILEBROWSER_ADDRESS: 0.0.0.0
       FILEBROWSER_PORT: "80"
