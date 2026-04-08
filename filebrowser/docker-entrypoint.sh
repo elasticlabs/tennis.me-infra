@@ -10,6 +10,6 @@ if [ ! -f "$CFG_PATH" ]; then
   filebrowser config init -c "$CFG_PATH" -d "$DB_PATH"
 fi
 
-filebrowser config set   -c "$CFG_PATH"   -d "$DB_PATH"   --address "${FILEBROWSER_ADDRESS:-0.0.0.0}"   --port "${FILEBROWSER_PORT:-80}"   --baseURL "${FILEBROWSER_BASEURL:-/files}"   --root "${FILEBROWSER_ROOT:-/srv}"   --log "${FILEBROWSER_LOG:-stdout}"   --auth.method noauth
+filebrowser config set   -c "$CFG_PATH"   -d "$DB_PATH"   --address "${FILEBROWSER_ADDRESS:-0.0.0.0}"   --port "${FILEBROWSER_PORT:-80}"   --baseURL "${FILEBROWSER_BASEURL:-/files}"   --root "${FILEBROWSER_ROOT:-/srv}"   --log "${FILEBROWSER_LOG:-stdout}"  
 
 exec filebrowser   -c "$CFG_PATH"   -d "$DB_PATH"
