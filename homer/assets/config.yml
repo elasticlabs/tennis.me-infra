@@ -24,4 +24,4 @@ services:
         url: "https://admin.elasticlabs.co/cadvisor/"
       - name: "Files"
         subtitle: "Named volumes browser"
-        url: "https://admin.elasticlabs.co/files/"
+        url: "https://admin.elasticlabs.co/data /"
