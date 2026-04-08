@@ -239,8 +239,8 @@ services:
       - prometheus_data:/srv/prometheus:ro
       - tempo_data:/srv/tempo:ro
       - ./swag/config:/srv/swag:ro
-      - files_database:/database
-      - files_config:/config
+      - filebrowser_database:/database
+      - filebrowser_config:/config
     restart: unless-stopped
     expose:
       - "80"
@@ -262,5 +262,5 @@ volumes:
   loki_data:
   prometheus_data:
   tempo_data:
-  files_database:
-  files_config:
+  filebrowser_database:
+  filebrowser_config:
