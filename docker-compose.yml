@@ -220,12 +220,12 @@ services:
     networks:
       - revproxy_apps
 
-  files:
+  filebrowser:
     build:
       context: ./filebrowser
-    container_name: ${COMPOSE_PROJECT_NAME}_files
+    container_name: ${COMPOSE_PROJECT_NAME}_filebrowser
     environment:
-      FILEBROWSER_BASEURL: /files
+      FILEBROWSER_BASEURL: /data
       FILEBROWSER_ADDRESS: 0.0.0.0
       FILEBROWSER_PORT: "80"
       FILEBROWSER_ROOT: /srv
