@@ -42,6 +42,11 @@ services:
     restart: unless-stopped
     expose:
       - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     logging: *default-logging
     networks:
       - revproxy_apps
@@ -57,6 +62,9 @@ services:
       - --hostname-strict=true
       - --metrics-enabled=true
       - --health-enabled=true
+    depends_on:
+      keycloak-postgresql:
+        condition: service_healthy
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-postgresql:5432/${KEYCLOAK_DB}
@@ -64,8 +72,6 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    depends_on:
-      - keycloak-postgresql
     restart: unless-stopped
     expose:
       - "8080"
@@ -261,7 +267,7 @@ services:
       - -max_housekeeping_interval=35s
       - -event_storage_event_limit=default=0
       - -event_storage_age_limit=default=0
-      - -disable_metrics=percpu,sched,tcp,udp
+      - -disable_metrics=percpu,sched,tcp,udp,referenced_memory
       - -docker_only=true
     volumes:
       - /:/rootfs:ro
@@ -284,6 +290,8 @@ services:
     command:
       - '--config.file=/etc/alertmanager/config.yml'
       - '--storage.path=/alertmanager'
+      - '--web.external-url=https://admin.${BASE_DOMAIN}/alertmanager/'
+      - '--web.route-prefix=/'
     expose:
       - "9093"
     restart: unless-stopped
