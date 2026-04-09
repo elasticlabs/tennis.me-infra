@@ -255,6 +255,8 @@ services:
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
+    command:
+      - -url_base_prefix=/cadvisor
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
