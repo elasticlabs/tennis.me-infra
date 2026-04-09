@@ -150,9 +150,7 @@ services:
         grafana-lokiexplore-app,
         grafana-polystat-panel,
         camptocamp-prometheus-alertmanager-datasource,
-        vonage-status-panel,
-        grafana-flowcharting,
-        marcusolsson-json-datasource
+        vonage-status-panel
     volumes:
       - ./grafana/grafana//provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards
