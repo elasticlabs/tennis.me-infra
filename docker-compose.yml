@@ -103,12 +103,13 @@ services:
       - revproxy_apps
 
   homer:
-    build:
-      context: ./homer
+    image: b4bz/homer:latest
     container_name: ${COMPOSE_PROJECT_NAME}_homer
     restart: unless-stopped
     expose:
       - "8080"
+    volumes:
+      - ./homer:/www/assets/config:ro
     logging: *default-logging
     networks:
       - revproxy_apps

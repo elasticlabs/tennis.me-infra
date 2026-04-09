@@ -1,0 +1,73 @@
+---
+title: "Admin welcome page"
+subtitle: "Elabs internal services dashboard"
+# documentTitle: "Welcome" # Customize the browser tab text
+# logo: "assets/logo.png"
+# Alternatively a fa icon can be provided:
+icon: "fa-solid fa-user-gear"
+header: true
+footer: '<p>Created with <span class="has-text-danger">❤️</span> with <a href="https://bulma.io/">bulma</a>, <a href="https://vuejs.org/">vuejs</a> & <a href="https://fontawesome.com/">font awesome</a> // Fork me on <a href="https://github.com/bastienwirtz/homer"><i class="fab fa-github-alt"></i></a></p>' # set false if you want to hide it.
+# footer: false
+columns: 3
+connectivityCheck: true # whether you want to display a message when the apps are not accessible anymore (VPN disconnected for example).
+                        # You should set it to true when using an authentication proxy, it also reloads the page when a redirection is detected when checking connectivity.
+
+# Set the default layout and color scheme
+defaults:
+  layout: columns # Either 'columns', or 'list'
+  colorTheme: light # One of 'auto', 'light', or 'dark'
+
+# Optional theming
+theme: default # 'default', 'walkxcode', or 'neon'
+
+# Optional navbar
+# links: [] # Allows for navbar (dark mode, layout, and search) without any links
+links:
+  - name: "Elasticlabs GitHub"
+    icon: "fab fa-github"
+    url: "https://github.com/elasticlabs"
+    target: "_blank" # optional html tag target attribute
+  - name: "Jetpunk"
+    icon: "fas fa-fish"
+    url: "https://www.jetpunk.com/"
+  #- name: "Second Page"
+  #  icon: "fas fa-file-alt"
+  #  url: "#page2"
+
+
+services:
+  - name: "Admin"
+    icon: "fas fa-shield-alt"
+    items:
+      - name: "Keycloak"
+        subtitle: "IAM / SSO"
+        url: "https://auth.elasticlabs.co"
+      - name: "Portainer"
+        subtitle: "Portainer"
+        url: "https://admin.elasticlabs.co/portainer/"
+#
+# Displays container counts (running/dead/misc), version, and online status from your Portainer instance.
+# Requirements: Portainer version 1.11 or later
+# API Key: Generate an access token in Portainer UI. See https://documentation.portainer.io/v2.0/api/auth/#generate-api-key for instructions.
+#
+#      - name: "Portainer"
+#        type: "Portainer"
+#        logo: "assets/tools/sample.png"
+#        url: https://my-service.url
+#        apikey: "<---insert-api-key-here--->"
+#        environments: # optional: specific environments to check
+#          - "raspberry"
+#          - "local"
+      - name: "Grafana"
+        subtitle: "Observability"
+        url: "https://admin.elasticlabs.co/grafana/"
+      - name: "Prometheus"
+        type: "Prometheus"
+        logo: "assets/tools/sample.png"
+        url: "https://admin.elasticlabs.co/prometheus"
+      - name: "cAdvisor"
+        subtitle: "Container metrics UI"
+        url: "https://admin.elasticlabs.co/cadvisor/"
+      - name: "Files"
+        subtitle: "Named volumes browser"
+        url: "https://admin.elasticlabs.co/data /"
