@@ -155,6 +155,7 @@ up: init
 	@echo "  Admin       : https://$(ADMIN_DOMAIN)/"
 	@echo "  Portainer   : https://$(ADMIN_DOMAIN)/portainer/"
 	@echo "  Grafana     : https://$(ADMIN_DOMAIN)/grafana/"
+	@echo "  Prometheus  : https://$(ADMIN_DOMAIN)/prometheus/"
 	@echo "  cAdvisor    : https://$(ADMIN_DOMAIN)/cadvisor/"
 	@echo "  Files       : https://$(ADMIN_DOMAIN)/files/"
 	@echo "  Labs        : https://$(LABS_DOMAIN)/"

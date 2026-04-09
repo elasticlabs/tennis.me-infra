@@ -1,0 +1,18 @@
+# Most setups calculate metrics on the fly, causing dashboard slowdowns. Pre-compute frequently used metrics with recording rules 
+# Then update your dashboards to use these pre-computed metrics:
+# Original metric : 
+# 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+# New metric : node:cpu_usage:avg5m
+# This makes your dashboards much faster and reduces load on Prometheus, especially for complex queries.
+groups:
+- name: recording_rules
+  interval: 1m
+  rules:
+  - record: node:cpu_usage:avg5m
+    expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+    
+  - record: node:memory_usage:percent
+    expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100
+    
+  - record: container:cpu_usage:avg5m
+    expr: sum by(name) (rate(container_cpu_usage_seconds_total{name!=""}[5m])) * 100
