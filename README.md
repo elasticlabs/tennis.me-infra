@@ -99,7 +99,7 @@ flowchart TB
     SWAG --> Homer
 
     subgraph Services
-        Services --> Deployed stack
+        Services --> Other_stack
     end
 
     subgraph Observability
