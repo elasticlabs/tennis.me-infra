@@ -132,7 +132,7 @@ services:
     expose:
       - "8080"
     volumes:
-      - ./homer:/www/assets/:ro
+      - ./homer/config.yml:/www/assets/config.yml:ro
     labels:
       <<: *common-observability-labels
       obs.service: homer
