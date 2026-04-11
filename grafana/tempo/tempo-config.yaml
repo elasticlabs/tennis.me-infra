@@ -18,6 +18,8 @@ compactor:
     block_retention: 24h
 
 metrics_generator:
+  storage:
+    path: /var/tempo/generator/wal
   ring:
     kvstore:
       store: inmemory
