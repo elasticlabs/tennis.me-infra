@@ -1,9 +1,3 @@
-# Most setups calculate metrics on the fly, causing dashboard slowdowns. Pre-compute frequently used metrics with recording rules 
-# Then update your dashboards to use these pre-computed metrics:
-# Original metric : 
-# 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
-# New metric : node:cpu_usage:avg5m
-# This makes your dashboards much faster and reduces load on Prometheus, especially for complex queries.
 groups:
 - name: recording_rules
   interval: 1m
@@ -36,10 +30,12 @@ groups:
     expr: max by(name) (container_last_seen{name!=""})
 
   - record: container:cpu_throttling:ratio5m
-    expr: sum by(name) (
-            rate(container_cpu_cfs_throttled_periods_total{name!=""}[5m])
-          )
+    expr: sum by(name) (rate(container_cpu_cfs_throttled_periods_total{name!=""}[5m]))
           /
-          sum by(name) (
-            rate(container_cpu_cfs_periods_total{name!=""}[5m])
-          )
+          sum by(name) (rate(container_cpu_cfs_periods_total{name!=""}[5m]))
+
+  - record: service:up:bool
+    expr: max by(job, service, stack, domain, role, env) (up)
+
+  - record: service:targets_down:count
+    expr: count by(job, service, stack, domain, role, env) (up == 0)

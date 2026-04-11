@@ -100,7 +100,21 @@ loki.process "docker" {
 
   stage.static_labels {
     values = {
-      host = "homeserver-01",
+      host   = "homeserver-01",
+      source = "docker",
+    }
+  }
+
+  stage.regex {
+    expression = "(?i)(?:level|lvl|severity)=(?P<level>[a-z]+)"
+  }
+
+  stage.match {
+    selector = "{service=~"swag|oauth2-proxy|keycloak|keycloak-postgresql"}"
+    stage.static_labels {
+      values = {
+        critical = "true",
+      }
     }
   }
 
@@ -117,6 +131,9 @@ loki.process "docker" {
       role            = "",
       env             = "",
       host            = "",
+      source          = "",
+      critical        = "",
+      level           = "",
     }
   }
 }
@@ -190,6 +207,24 @@ discovery.relabel "prometheus_targets" {
       stack       = "zone-proxy",
       domain      = "admin",
       role        = "collector",
+      env         = "prod",
+    },
+    {
+      __address__ = "loki:3100",
+      job         = "loki",
+      service     = "loki",
+      stack       = "zone-proxy",
+      domain      = "admin",
+      role        = "logs",
+      env         = "prod",
+    },
+    {
+      __address__ = "tempo:3200",
+      job         = "tempo",
+      service     = "tempo",
+      stack       = "zone-proxy",
+      domain      = "admin",
+      role        = "tracing",
       env         = "prod",
     },
   ]
@@ -287,7 +322,7 @@ otelcol.processor.attributes "traces_enrich" {
 }
 
 otelcol.connector.servicegraph "default" {
-  dimensions = ["http.method", "http.route", "http.status_code"]
+  dimensions = ["http.method", "http.status_code"]
 
   output {
     metrics = [otelcol.exporter.prometheus.servicegraph.input]
