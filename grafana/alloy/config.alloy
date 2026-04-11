@@ -13,7 +13,7 @@ local.file_match "docker_json" {
     {
       __path__ = "/var/lib/docker/containers/*/*-json.log",
       job      = "docker-json",
-    }
+    },
   ]
 }
 
@@ -29,5 +29,6 @@ loki.process "normalize" {
       host  = "rocky9",
     }
   }
+
   forward_to = [loki.write.default.receiver]
 }

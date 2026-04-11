@@ -227,10 +227,10 @@ services:
   tempo:
     image: grafana/tempo:latest
     container_name: ${COMPOSE_PROJECT_NAME}_tempo
-    command: ["-config.file=/etc/tempo/tempo-config.yml"]
+    command: ["-config.file=/etc/tempo/tempo-config.yaml"]
     volumes:
       - tempo_data:/var/tempo
-      - ./grafana/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
+      - ./grafana/tempo/tempo-config.yaml:/etc/tempo/tempo-config.yaml:ro
     restart: unless-stopped
     expose:
       - "3200"
