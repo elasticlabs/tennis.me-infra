@@ -105,10 +105,10 @@ flowchart TB
         Alloy --> Loki
         Alloy --> Tempo
         Alloy --> Prometheus
+        NodeExporter --> Prometheus
+        cAdvisor --> Prometheus
     end
 
-    NodeExporter --> Prometheus
-    cAdvisor --> Prometheus
 ```
 
 ---
@@ -120,7 +120,7 @@ flowchart LR
 
     Containers -->|logs| Alloy
     Containers -->|metrics| Prometheus
-    Containers -->|traces (Phase 2)| Alloy
+    Containers -->|traces| Alloy
 
     Alloy --> Loki
     Alloy --> Tempo
