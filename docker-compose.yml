@@ -183,7 +183,7 @@ services:
       obs.role: monitoring-dashboard
     volumes:
       - ./grafana/grafana/provisioning:/etc/grafana/provisioning:ro
-      # - ./grafana/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./grafana/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     <<: *service-defaults
 
