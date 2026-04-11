@@ -150,15 +150,7 @@ build: init
 up: init
 	@docker compose up -d
 	@echo ""
-	@echo "Available URLs"
-	@echo "  Auth        : https://$(AUTH_DOMAIN)"
-	@echo "  Admin       : https://$(ADMIN_DOMAIN)/"
-	@echo "  Portainer   : https://$(ADMIN_DOMAIN)/portainer/"
-	@echo "  Grafana     : https://$(ADMIN_DOMAIN)/grafana/"
-	@echo "  Prometheus  : https://$(ADMIN_DOMAIN)/prometheus/"
-	@echo "  cAdvisor    : https://$(ADMIN_DOMAIN)/cadvisor/"
-	@echo "  Files       : https://$(ADMIN_DOMAIN)/files/"
-	@echo "  Labs        : https://$(LABS_DOMAIN)/"
+
 
 down:
 	@docker compose down
@@ -168,13 +160,15 @@ restart:
 	@docker compose up -d
 	@echo ""
 	@echo "Available URLs"
-	@echo "  Auth        : https://$(AUTH_DOMAIN)"
 	@echo "  Admin       : https://$(ADMIN_DOMAIN)/"
 	@echo "  Portainer   : https://$(ADMIN_DOMAIN)/portainer/"
 	@echo "  Grafana     : https://$(ADMIN_DOMAIN)/grafana/"
+	@echo "  Alertmanager: https://$(ADMIN_DOMAIN)/alertmanager/"
+	@echo "  Prometheus  : https://$(ADMIN_DOMAIN)/prometheus/"
 	@echo "  cAdvisor    : https://$(ADMIN_DOMAIN)/cadvisor/"
-	@echo "  Files       : https://$(ADMIN_DOMAIN)/files/"
+	@echo "  Files       : https://$(ADMIN_DOMAIN)/data/"
 	@echo "  Labs        : https://$(LABS_DOMAIN)/"
+	@echo "  Keycloak    : https://$(AUTH_DOMAIN)"
 
 ps:
 	@docker compose ps
