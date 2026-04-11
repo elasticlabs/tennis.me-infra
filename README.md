@@ -215,10 +215,10 @@ docker compose up -d
 
 | Service | URL |
 |--------|-----|
-| Grafana | https://admin.<domain>/grafana |
-| Portainer | https://admin.<domain>/portainer |
-| Homer | https://admin.<domain>/ |
-| Alertmanager | https://admin.<domain>/alertmanager |
+| Grafana | https://admin.YOUR_DOMAIN/grafana |
+| Portainer | https://admin.YOUR_DOMAIN/portainer |
+| Homer | https://admin.YOUR_DOMAIN/ |
+| Alertmanager | https://admin.YOUR_DOMAIN/alertmanager |
 
 ---
 
