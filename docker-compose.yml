@@ -1,20 +1,28 @@
-# This anchor ensures that docker logs never get too fat ;-)
-x-logging: &default-logging
-  driver: json-file
-  options:
-    max-size: "10m"
-    max-file: "3"
-
+# Definition of common service defaults to avoid repetition
 x-service-defaults: &service-defaults
   restart: unless-stopped
-  logging: *default-logging
+  logging: 
+    # This ensures that docker logs never get too fat ;-)
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
   networks:
     - revproxy_apps
+
+x-observability-labels: &common-observability-labels
+  obs.stack: zone-proxy
+  obs.domain: admin
+  obs.env: prod
 
 services:
   swag:
     image: lscr.io/linuxserver/swag:latest
     container_name: ${COMPOSE_PROJECT_NAME}_swag
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
     environment:
       PUID: ${PUID}
       PGID: ${PGID}
@@ -25,13 +33,12 @@ services:
       ONLY_SUBDOMAINS: ${SWAG_ONLY_SUBDOMAINS}
       STAGING: ${SWAG_STAGING}
       EMAIL: ${ADMIN_EMAIL}
-    ports:
-      - "80:80"
-      - "443:443"
+    labels:
+      <<: *common-observability-labels
+      obs.service: swag
+      obs.role: reverse-proxy
     volumes:
       - ./swag/config:/config
-    restart: unless-stopped
-    logging: *default-logging
     networks:
       - swag_net
       - revproxy_apps
@@ -39,14 +46,18 @@ services:
   keycloak-postgresql:
     image: postgres:16.13
     container_name: ${COMPOSE_PROJECT_NAME}_keycloak-postgresql
+    expose:
+      - "5432"
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB}
       POSTGRES_USER: ${KEYCLOAK_DB_USER}
       POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+    labels:
+      <<: *common-observability-labels
+      obs.service: keycloak-postgresql
+      obs.role: database
     volumes:
       - keycloak_postgres_data:/var/lib/postgresql/data
-    expose:
-      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB}"]
       interval: 10s
@@ -57,6 +68,10 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.5.2
     container_name: ${COMPOSE_PROJECT_NAME}_keycloak
+    expose:
+      - "8080"
+      - "8443"
+      - "9000"
     command:
       - start
       - --http-enabled=true
@@ -75,10 +90,10 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    expose:
-      - "8080"
-      - "8443"
-      - "9000"
+    labels:
+      <<: *common-observability-labels
+      obs.service: keycloak
+      obs.role: iam
     <<: *service-defaults
 
   oauth2-proxy:
@@ -86,6 +101,8 @@ services:
     container_name: ${COMPOSE_PROJECT_NAME}_oauth2-proxy
     depends_on:
       - keycloak
+    expose:
+      - "4180"
     environment:
       OAUTH2_PROXY_PROVIDER: keycloak-oidc
       OAUTH2_PROXY_OIDC_ISSUER_URL: https://auth.${BASE_DOMAIN}/realms/elasticlabs
@@ -103,8 +120,10 @@ services:
       OAUTH2_PROXY_SCOPE: "openid profile email"
       OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
       OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
-    expose:
-      - "4180"
+    labels:
+      <<: *common-observability-labels
+      obs.service: oauth2-proxy
+      obs.role: auth-proxy
     <<: *service-defaults
 
   homer:
@@ -114,20 +133,28 @@ services:
       - "8080"
     volumes:
       - ./homer:/www/assets/config:ro
+    labels:
+      <<: *common-observability-labels
+      obs.service: homer
+      obs.role: home-dashboard
     <<: *service-defaults
 
   portainer:
     image: portainer/portainer-ce:2.39.0
     container_name: ${COMPOSE_PROJECT_NAME}_portainer
+    expose:
+      - "9000"
+      - "9443"
     command:
       - --base-url
       - /portainer
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
-    expose:
-      - "9000"
-      - "9443"
+    labels:
+      <<: *common-observability-labels
+      obs.service: portainer
+      obs.role: container-management
     <<: *service-defaults
 
   grafana:
@@ -138,6 +165,8 @@ services:
       - loki
       - tempo
       - alertmanager
+    expose:
+      - "3000"
     environment:
       GF_SERVER_ROOT_URL: https://admin.${BASE_DOMAIN}/grafana/
       GF_SERVER_DOMAIN: admin.${BASE_DOMAIN}
@@ -148,12 +177,14 @@ services:
       GF_METRICS_ENABLED: "true"
       GF_METRICS_DISABLE_TOTAL_STATS: "false"
       GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-clock-panel,grafana-worldmap-panel,grafana-lokiexplore-app,grafana-polystat-panel,camptocamp-prometheus-alertmanager-datasource,vonage-status-panel"
+    labels:
+      <<: *common-observability-labels
+      obs.service: grafana
+      obs.role: monitoring-dashboard
     volumes:
       - ./grafana/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
-    expose:
-      - "3000"
     <<: *service-defaults
 
   loki:
@@ -164,6 +195,10 @@ services:
     volumes:
       - loki_data:/loki
       - ./grafana/loki/config/loki-config.yml:/etc/loki/loki-config.yml:ro
+    labels:
+      <<: *common-observability-labels
+      obs.service: loki
+      obs.role: log-aggregation
     expose:
       - "3100"
     <<: *service-defaults
@@ -184,6 +219,10 @@ services:
       - ./grafana/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./grafana/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
+    labels:
+      <<: *common-observability-labels
+      obs.service: prometheus
+      obs.role: metrics-aggregation
     expose:
       - "9090"
     <<: *service-defaults
@@ -191,6 +230,10 @@ services:
   alloy:
     image: grafana/alloy:v1.14.1
     container_name: ${COMPOSE_PROJECT_NAME}_alloy
+    expose:
+      - "12345"
+      - "4317"
+      - "4318"
     command:
       - run
       - --server.http.listen-addr=0.0.0.0:12345
@@ -200,27 +243,35 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/log:/var/log:ro
       - ./grafana/alloy/config.alloy:/etc/alloy/config.alloy:ro
-    expose:
-      - "12345"
+    labels:
+      <<: *common-observability-labels
+      obs.service: alloy
+      obs.role: log-collection
     <<: *service-defaults
 
   tempo:
     image: grafana/tempo:2.10.3
     container_name: ${COMPOSE_PROJECT_NAME}_tempo
+    expose:
+      - "3200"
+      - "4317"
+      - "4318"
     command:
       - -config.file=/etc/tempo/tempo-config.yaml
     volumes:
       - tempo_data:/var/tempo
       - ./grafana/tempo/tempo-config.yaml:/etc/tempo/tempo-config.yaml:ro
-    expose:
-      - "3200"
-      - "4317"
-      - "4318"
+    labels:
+      <<: *common-observability-labels
+      obs.service: tempo
+      obs.role: trace-aggregation
     <<: *service-defaults
 
   node-exporter:
     image: prom/node-exporter:v1.11.1
     container_name: ${COMPOSE_PROJECT_NAME}_node-exporter
+    expose:
+      - "9100"
     command:
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys
@@ -231,13 +282,17 @@ services:
     volumes:
       - /:/host:ro,rslave
       - ./grafana/node-exporter/textfile:/textfile:ro
-    expose:
-      - "9100"
+    labels:
+      <<: *common-observability-labels
+      obs.service: node-exporter
+      obs.role: node-metrics
     <<: *service-defaults
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest
     container_name: ${COMPOSE_PROJECT_NAME}_cadvisor
+    expose:
+      - "8080"
     privileged: true
     devices:
       - /dev/kmsg:/dev/kmsg
@@ -255,13 +310,17 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
       - /dev/disk:/dev/disk:ro
-    expose:
-      - "8080"
+    labels:
+      <<: *common-observability-labels
+      obs.service: cadvisor
+      obs.role: container-metrics
     <<: *service-defaults
 
   alertmanager:
     image: prom/alertmanager:v0.32.0
     container_name: ${COMPOSE_PROJECT_NAME}_alertmanager
+    expose:
+      - "9093"
     volumes:
       - ./grafana/alertmanager:/etc/alertmanager:ro
       - alertmanager_data:/alertmanager
@@ -270,13 +329,17 @@ services:
       - --storage.path=/alertmanager
       - --web.external-url=https://admin.${BASE_DOMAIN}/alertmanager/
       - --web.route-prefix=/
-    expose:
-      - "9093"
+    labels:
+      <<: *common-observability-labels
+      obs.service: alertmanager
+      obs.role: alerting
     <<: *service-defaults
 
   filebrowser:
     image: filebrowser/filebrowser:v2.63.2
     container_name: ${COMPOSE_PROJECT_NAME}_filebrowser
+    expose:
+      - "80"
     environment:
       PUID: ${PUID}
       PGID: ${PGID}
@@ -298,8 +361,10 @@ services:
       - ./swag/config:/srv/swag:ro
       - filebrowser_database:/database
       - filebrowser_config:/config
-    expose:
-      - "80"
+    labels:
+      <<: *common-observability-labels
+      obs.service: filebrowser
+      obs.role: file-management
     <<: *service-defaults
 
 networks:
