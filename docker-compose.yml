@@ -176,7 +176,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_METRICS_ENABLED: "true"
       GF_METRICS_DISABLE_TOTAL_STATS: "false"
-      GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-clock-panel,grafana-worldmap-panel,grafana-lokiexplore-app,grafana-polystat-panel,camptocamp-prometheus-alertmanager-datasource,vonage-status-panel"
+      GF_INSTALL_PLUGINS: "grafana-polystat-panel,camptocamp-prometheus-alertmanager-datasource"
     labels:
       <<: *common-observability-labels
       obs.service: grafana

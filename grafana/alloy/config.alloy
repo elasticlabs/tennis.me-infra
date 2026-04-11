@@ -110,7 +110,8 @@ loki.process "docker" {
   }
 
   stage.match {
-    selector = "{service=~"swag|oauth2-proxy|keycloak|keycloak-postgresql"}"
+    selector = "{service=~\"swag|oauth2-proxy|keycloak|keycloak-postgresql\"}"
+
     stage.static_labels {
       values = {
         critical = "true",

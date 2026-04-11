@@ -67,18 +67,6 @@ datasources:
         filterBySpanID: false
         customQuery: true
         query: '{stack="zone-proxy"} |= "$${__trace.traceId}"'
-      tracesToMetrics:
-        datasourceUid: prometheus
-        spanStartTimeShift: "-5m"
-        spanEndTimeShift: "5m"
-        tags:
-          - key: service.name
-            value: service
-          - key: deployment.environment
-            value: env
-        queries:
-          - name: Request rate
-            query: 'sum(rate(container_cpu_usage_seconds_total{image!=""}[5m])) by (container)'
       serviceMap:
         datasourceUid: prometheus
       search:
