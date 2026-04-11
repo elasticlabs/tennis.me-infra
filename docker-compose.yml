@@ -5,9 +5,15 @@ x-logging: &default-logging
     max-size: "10m"
     max-file: "3"
 
+x-service-defaults: &service-defaults
+  restart: unless-stopped
+  logging: *default-logging
+  networks:
+    - revproxy_apps
+
 services:
   swag:
-    image: linuxserver/swag:latest
+    image: lscr.io/linuxserver/swag:2.10.0
     container_name: ${COMPOSE_PROJECT_NAME}_swag
     environment:
       PUID: ${PUID}
@@ -31,7 +37,7 @@ services:
       - revproxy_apps
 
   keycloak-postgresql:
-    image: postgres:16
+    image: postgres:16.13
     container_name: ${COMPOSE_PROJECT_NAME}_keycloak-postgresql
     environment:
       POSTGRES_DB: ${KEYCLOAK_DB}
@@ -39,20 +45,17 @@ services:
       POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
     volumes:
       - keycloak_postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
     expose:
       - "5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER} -d ${KEYCLOAK_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   keycloak:
-    image: quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+    image: quay.io/keycloak/keycloak:26.5.2
     container_name: ${COMPOSE_PROJECT_NAME}_keycloak
     command:
       - start
@@ -72,18 +75,17 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    restart: unless-stopped
     expose:
       - "8080"
       - "8443"
       - "9000"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:latest
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.1
     container_name: ${COMPOSE_PROJECT_NAME}_oauth2-proxy
+    depends_on:
+      - keycloak
     environment:
       OAUTH2_PROXY_PROVIDER: keycloak-oidc
       OAUTH2_PROXY_OIDC_ISSUER_URL: https://auth.${BASE_DOMAIN}/realms/elasticlabs
@@ -101,27 +103,21 @@ services:
       OAUTH2_PROXY_SCOPE: "openid profile email"
       OAUTH2_PROXY_CODE_CHALLENGE_METHOD: S256
       OAUTH2_PROXY_COOKIE_SECRET: ${OAUTH2_PROXY_COOKIE_SECRET}
-    restart: unless-stopped
     expose:
       - "4180"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   homer:
-    image: b4bz/homer:latest
+    image: b4bz/homer:v25.11.1
     container_name: ${COMPOSE_PROJECT_NAME}_homer
-    restart: unless-stopped
     expose:
       - "8080"
     volumes:
       - ./homer:/www/assets/config:ro
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   portainer:
-    image: portainer/portainer-ce:latest
+    image: portainer/portainer-ce:2.39.0
     container_name: ${COMPOSE_PROJECT_NAME}_portainer
     command:
       - --base-url
@@ -129,19 +125,19 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
-    restart: unless-stopped
     expose:
       - "9000"
       - "9443"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
-  #
-  # Grafana and related services
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.3.6
     container_name: ${COMPOSE_PROJECT_NAME}_grafana
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+      - alertmanager
     environment:
       GF_SERVER_ROOT_URL: https://admin.${BASE_DOMAIN}/grafana/
       GF_SERVER_DOMAIN: admin.${BASE_DOMAIN}
@@ -151,64 +147,49 @@ services:
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_METRICS_ENABLED: "true"
       GF_METRICS_DISABLE_TOTAL_STATS: "false"
-      GF_INSTALL_PLUGINS: 
-        grafana-piechart-panel,
-        grafana-clock-panel,
-        grafana-worldmap-panel,
-        grafana-lokiexplore-app,
-        grafana-polystat-panel,
-        camptocamp-prometheus-alertmanager-datasource,
-        vonage-status-panel
+      GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-clock-panel,grafana-worldmap-panel,grafana-lokiexplore-app,grafana-polystat-panel,camptocamp-prometheus-alertmanager-datasource,vonage-status-panel"
     volumes:
       - ./grafana/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
-    restart: unless-stopped
     expose:
       - "3000"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   loki:
-    image: grafana/loki:2.9.0
+    image: grafana/loki:3.6.7
     container_name: ${COMPOSE_PROJECT_NAME}_loki
-    command: -config.file=/etc/loki/loki-config.yml
+    command:
+      - -config.file=/etc/loki/loki-config.yml
     volumes:
       - loki_data:/loki
       - ./grafana/loki/config/loki-config.yml:/etc/loki/loki-config.yml:ro
-    restart: unless-stopped
     expose:
       - "3100"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.8.0
     container_name: ${COMPOSE_PROJECT_NAME}_prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
       - --web.external-url=/prometheus/
       - --web.route-prefix=/
-      - '--storage.tsdb.retention.time=7d'      # Adjust retention period
-      - '--storage.tsdb.wal-compression'        # Compress write-ahead log
-      - '--storage.tsdb.retention.size=10GB'    # Limit total storage size
-      - '--web.enable-lifecycle'   
+      - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.wal-compression
+      - --storage.tsdb.retention.size=10GB
+      - --web.enable-lifecycle
     volumes:
       - ./grafana/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./grafana/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
-    restart: unless-stopped
     expose:
       - "9090"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   alloy:
-    image: grafana/alloy:latest
+    image: grafana/alloy:v1.14.1
     container_name: ${COMPOSE_PROJECT_NAME}_alloy
     command:
       - run
@@ -219,52 +200,43 @@ services:
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/log:/var/log:ro
       - ./grafana/alloy/config.alloy:/etc/alloy/config.alloy:ro
-    restart: unless-stopped
     expose:
       - "12345"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   tempo:
-    image: grafana/tempo:2.9.0
+    image: grafana/tempo:2.10.3
     container_name: ${COMPOSE_PROJECT_NAME}_tempo
     command:
       - -config.file=/etc/tempo/tempo-config.yaml
     volumes:
       - tempo_data:/var/tempo
       - ./grafana/tempo/tempo-config.yaml:/etc/tempo/tempo-config.yaml:ro
-    restart: unless-stopped
     expose:
       - "3200"
       - "4317"
       - "4318"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
-  
+    <<: *service-defaults
+
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.11.1
     container_name: ${COMPOSE_PROJECT_NAME}_node-exporter
     command:
-      - '--path.procfs=/host/proc'
-      - '--path.sysfs=/host/sys'
-      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($|/)'
-      - '--path.rootfs=/host'
-      - '--collector.textfile.directory=/textfile'
-    pid: 'host'
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($|/)
+      - --path.rootfs=/host
+      - --collector.textfile.directory=/textfile
+    pid: host
     volumes:
       - /:/host:ro,rslave
       - ./grafana/node-exporter/textfile:/textfile:ro
-    restart: unless-stopped
     expose:
       - "9100"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.56.2
     container_name: ${COMPOSE_PROJECT_NAME}_cadvisor
     privileged: true
     devices:
@@ -283,37 +255,32 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
       - /dev/disk:/dev/disk:ro
-    restart: unless-stopped
     expose:
       - "8080"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:v0.32.0
     container_name: ${COMPOSE_PROJECT_NAME}_alertmanager
     volumes:
-      - ./grafana/alertmanager:/etc/alertmanager
+      - ./grafana/alertmanager:/etc/alertmanager:ro
+      - alertmanager_data:/alertmanager
     command:
-      - '--config.file=/etc/alertmanager/config.yml'
-      - '--storage.path=/alertmanager'
-      - '--web.external-url=https://admin.${BASE_DOMAIN}/alertmanager/'
-      - '--web.route-prefix=/'
+      - --config.file=/etc/alertmanager/config.yml
+      - --storage.path=/alertmanager
+      - --web.external-url=https://admin.${BASE_DOMAIN}/alertmanager/
+      - --web.route-prefix=/
     expose:
       - "9093"
-    restart: unless-stopped
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
   filebrowser:
-    image: filebrowser/filebrowser:latest
+    image: filebrowser/filebrowser:v2.63.2
     container_name: ${COMPOSE_PROJECT_NAME}_filebrowser
     environment:
-      PUID: $(id -u)
-      PGID: $(id -g)
-      FILEBROWSER_ROOT: /srv
+      PUID: ${PUID}
+      PGID: ${PGID}
+      FB_ROOT: /srv
     command: >
       --database /database/filebrowser.db
       --root /srv
@@ -324,19 +291,16 @@ services:
     volumes:
       - keycloak_postgres_data:/srv/keycloak-postgres:ro
       - portainer_data:/srv/portainer:ro
-      - grafana_data:/srv/grafana
-      - loki_data:/srv/loki
-      - prometheus_data:/srv/prometheus
-      - tempo_data:/srv/tempo
-      - ./swag/config:/srv/swag
+      - grafana_data:/srv/grafana:ro
+      - loki_data:/srv/loki:ro
+      - prometheus_data:/srv/prometheus:ro
+      - tempo_data:/srv/tempo:ro
+      - ./swag/config:/srv/swag:ro
       - filebrowser_database:/database
       - filebrowser_config:/config
-    restart: unless-stopped
     expose:
       - "80"
-    logging: *default-logging
-    networks:
-      - revproxy_apps
+    <<: *service-defaults
 
 networks:
   swag_net:
@@ -353,5 +317,6 @@ volumes:
   loki_data:
   prometheus_data:
   tempo_data:
+  alertmanager_data:
   filebrowser_database:
   filebrowser_config:
