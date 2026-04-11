@@ -230,8 +230,20 @@ prometheus.remote_write "prometheus" {
 }
 
 //////////////////////////////
-// OTLP RECEIVER -> TEMPO
+// OTLP RECEIVER -> SERVICEGRAPH + TEMPO
 //////////////////////////////
+
+otelcol.connector.servicegraph "default" {
+  dimensions = ["http.method"]
+
+  output {
+    metrics = [otelcol.exporter.prometheus.servicegraph.input]
+  }
+}
+
+otelcol.exporter.prometheus "servicegraph" {
+  forward_to = [prometheus.remote_write.prometheus.receiver]
+}
 
 otelcol.receiver.otlp "default" {
   grpc {
@@ -243,13 +255,29 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
-    traces = [otelcol.processor.batch.default.input]
+    traces = [
+      otelcol.connector.servicegraph.default.input,
+      otelcol.processor.batch.default.input,
+    ]
   }
 }
 
 otelcol.processor.batch "default" {
   output {
     traces = [otelcol.exporter.otlp.tempo.input]
+  }
+}
+
+//////////////////////////////
+// OTLP EXPORTER
+//////////////////////////////
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = "tempo:4317"
+    tls {
+      insecure = true
+    }
   }
 }
 
