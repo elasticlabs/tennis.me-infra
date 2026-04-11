@@ -14,14 +14,16 @@ groups:
     expr: (
             container_memory_working_set_bytes{name!=""}
             /
-            container_spec_memory_limit_bytes{name!="", container_spec_memory_limit_bytes>0}
+            container_spec_memory_limit_bytes{name!=""}
           ) * 100 > 80
+          and on(name)
+          container_spec_memory_limit_bytes{name!=""} > 0
     for: 5m
     labels:
       severity: warning
     annotations:
       summary: "Container high memory usage ({{ $labels.name }})"
-      description: "Container {{ $labels.name }} memory usage is above 80% of its configured limit"
+      description: "Container {{ $labels.name }} memory usage is above 80% of its configured limit" 
 
   - alert: ContainerCPUThrottling
     expr: (
