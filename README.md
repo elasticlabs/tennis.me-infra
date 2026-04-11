@@ -1,140 +1,209 @@
 # 🔐 Observability & Platform Stack (Docker Compose)
 
-This stack provides a **self-hosted platform** combining:
+This repository provides a **self-hosted platform stack** designed for:
 
-* Reverse proxy & TLS
-* Authentication (SSO)
-* Container management
-* Full observability (metrics, logs, traces)
-* File access to persistent data
+- Homelab environments
+- Personal servers
+- Small dev / staging platforms
+- Future extensible architectures (Supabase, geospatial platforms, etc.)
 
-Designed for **homelab / small infra / dev platforms**.
+It combines:
 
----
-
-## 🧱 Stack Overview
-
-### 🌐 Access & Security
-
-* **SWAG (Nginx + Let's Encrypt)** → reverse proxy, HTTPS, routing
-* **Keycloak** → identity provider (OIDC / SSO)
-* **OAuth2 Proxy** → protects services behind authentication
+- Reverse proxy & TLS
+- Authentication (SSO)
+- Container management
+- Full observability (metrics, logs, traces)
+- Data access & persistence
 
 ---
 
-### 🖥️ Platform & Tools
+# 🧭 Architecture Philosophy
 
-* **Homer** → dashboard / homepage
-* **Portainer** → Docker management UI
-* **Filebrowser** → access volumes & persistent data
+This stack is built in **two distinct phases**:
 
----
+## 🟢 Phase 1 — Platform Foundation (current)
 
-### 📊 Observability (LGTM Stack)
+Goal: build a **stable, observable, production-ready base**
 
-* **Prometheus** → metrics collection
-* **Node Exporter** → host metrics
-* **cAdvisor** → container metrics
-* **Loki** → logs aggregation
-* **Alloy (Grafana Agent)** → logs + metrics shipping
-* **Tempo** → distributed tracing
-* **Grafana** → visualization (metrics, logs, traces)
-* **Alertmanager** → alerting system
+Includes:
+
+- Reverse proxy (SWAG)
+- Core services (Grafana, Portainer, Homer, Filebrowser)
+- Observability stack (Prometheus, Loki, Tempo, Alloy)
+- Metrics, logs, dashboards, alerting
+
+⚠️ Tracing is **prepared but not fully activated yet**
 
 ---
 
-## 🔗 How It Works
+## 🔐 Phase 2 — Security & Distributed Tracing (next)
 
-```text
-                ┌──────────────┐
-                │     SWAG     │
-                │ (Reverse Proxy)
-                └──────┬───────┘
-                       │
-        ┌──────────────┴──────────────┐
-        │                             │
-   ┌────▼────┐                 ┌──────▼──────┐
-   │ Keycloak│                 │ OAuth2 Proxy│
-   └────┬────┘                 └──────┬──────┘
-        │                             │
-        └──────────────┬──────────────┘
-                       │
-         ┌─────────────▼─────────────┐
-         │   Internal Services       │
-         │ (Grafana, Portainer, etc) │
-         └─────────────┬─────────────┘
-                       │
-      ┌────────────────┴────────────────┐
-      │                                 │
- ┌────▼────┐  ┌──────────┐  ┌───────────▼──────┐
- │Prometheus│ │   Loki   │  │      Tempo       │
- └────┬────┘  └────┬─────┘  └───────────┬──────┘
-      │            │                    │
- ┌────▼────┐  ┌────▼────┐        ┌──────▼─────┐
- │Node Exp.│  │ cAdvisor│        │   Alloy    │
- └─────────┘  └─────────┘        └────────────┘
+Goal: enable **real-world secure flows + meaningful traces**
+
+Includes:
+
+- Keycloak configuration (OIDC, realms, clients)
+- OAuth2 Proxy protection of services
+- OTEL tracing activation on critical services
+- Service Graph / Node Graph in Grafana
+- Logs ↔ traces correlation
+
+---
+
+# 🧱 Stack Overview
+
+## 🌐 Access & Security
+
+- **SWAG (Nginx + Let's Encrypt)** → reverse proxy, HTTPS
+- **Keycloak** → identity provider (SSO / OIDC) *(Phase 2)*
+- **OAuth2 Proxy** → protects services *(Phase 2)*
+
+---
+
+## 🖥️ Platform Services
+
+- **Homer** → homepage dashboard
+- **Portainer** → Docker management
+- **Filebrowser** → persistent data access
+
+---
+
+## 📊 Observability (LGTM Stack)
+
+- **Prometheus** → metrics
+- **Node Exporter** → host metrics
+- **cAdvisor** → container metrics
+- **Loki** → logs
+- **Alloy** → logs + metrics + traces pipeline
+- **Tempo** → distributed tracing backend
+- **Grafana** → visualization
+- **Alertmanager** → alerting
+
+---
+
+# 🔗 System Architecture
+
+```mermaid
+flowchart TB
+
+    Internet --> SWAG
+
+    SWAG --> OAuth2Proxy
+    SWAG --> Services
+
+    OAuth2Proxy --> Keycloak
+    Keycloak --> OAuth2Proxy
+
+    Services --> Grafana
+    Services --> Portainer
+    Services --> Homer
+
+    subgraph Observability
+        Prometheus --> Grafana
+        Loki --> Grafana
+        Tempo --> Grafana
+        Alloy --> Loki
+        Alloy --> Tempo
+        Alloy --> Prometheus
+    end
+
+    NodeExporter --> Prometheus
+    cAdvisor --> Prometheus
 ```
 
 ---
 
-## 🔐 Authentication Flow
+# 🔄 Observability Flow
 
-1. User accesses a protected service
-2. SWAG routes traffic
-3. OAuth2 Proxy checks authentication
-4. Redirects to Keycloak if needed
-5. User logs in via Keycloak
-6. Access is granted to the service
+```mermaid
+flowchart LR
 
----
+    Containers -->|logs| Alloy
+    Containers -->|metrics| Prometheus
+    Containers -->|traces (Phase 2)| Alloy
 
-## 📊 Observability Flow
+    Alloy --> Loki
+    Alloy --> Tempo
+    Alloy --> Prometheus
 
-* Exporters (Node Exporter, cAdvisor) expose metrics
-* Prometheus scrapes and stores them
-* Alloy collects logs & forwards to Loki
-* Tempo stores traces
-* Grafana queries everything
-
----
-
-## 💾 Data Persistence
-
-Volumes are used for:
-
-* Databases (PostgreSQL / Keycloak)
-* Metrics (Prometheus)
-* Logs (Loki)
-* Traces (Tempo)
-* Dashboards (Grafana)
-* App data (Portainer, Filebrowser)
-
----
-
-## ⚙️ Networking
-
-Two external Docker networks:
-
-* `swag_net` → public entrypoint
-* `revproxy_apps` → internal communication
-
----
-
-## 🧹 Logging Strategy
-
-All services use:
-
-```yaml
-driver: local
-max-size: "10m"
-max-file: "3"
+    Prometheus --> Grafana
+    Loki --> Grafana
+    Tempo --> Grafana
 ```
 
-➡️ Prevents Docker logs from growing indefinitely.
+---
+
+# 🔐 Authentication Flow (Phase 2)
+
+```mermaid
+sequenceDiagram
+
+    User->>SWAG: Request service
+    SWAG->>OAuth2Proxy: Forward request
+    OAuth2Proxy->>Keycloak: Auth check
+    Keycloak-->>OAuth2Proxy: Token
+    OAuth2Proxy-->>SWAG: Auth OK
+    SWAG-->>User: Access granted
+```
 
 ---
 
-## 🚀 Usage
+# ⚙️ Prerequisites
+
+Before deploying the stack, ensure:
+
+| Requirement | Description |
+|------------|------------|
+| 🌐 Domain name | A registered domain (e.g. `example.com`) |
+| 📡 DNS configured | Subdomains pointing to your server (`A` record) |
+| 🐳 Docker | Installed and running |
+| 🧩 Docker Compose | v2+ |
+| 🔐 Open ports | 80 and 443 accessible |
+| 🧠 Basic Linux knowledge | Recommended |
+
+---
+
+# 🚀 Deployment
+
+## 1. Clone repository
+
+```bash
+git clone <repo>
+cd <repo>
+```
+
+## 2. Generate secrets
+
+```bash
+make generate-secrets
+```
+
+(uses Makefile to generate passwords and env variables)
+
+---
+
+## 3. Configure environment
+
+Edit:
+
+```bash
+.env
+```
+
+Important variables:
+- domain
+- emails
+- credentials
+
+---
+
+## 4. Start the stack
+
+```bash
+make up
+```
+
+or
 
 ```bash
 docker compose up -d
@@ -142,25 +211,102 @@ docker compose up -d
 
 ---
 
-## ✅ Key Features
+## 5. Access services
 
-* 🔒 Secure by default (TLS + SSO)
-* 📊 Full observability (metrics + logs + traces)
-* 🧩 Modular & extensible
-* 🐳 Fully containerized
-* 🧰 Self-hosted platform ready
+| Service | URL |
+|--------|-----|
+| Grafana | https://admin.<domain>/grafana |
+| Portainer | https://admin.<domain>/portainer |
+| Homer | https://admin.<domain>/ |
+| Alertmanager | https://admin.<domain>/alertmanager |
 
 ---
 
-## 🧠 Summary
+# 📊 Dashboards & Observability
+
+Phase 1 provides:
+
+- Service health overview
+- CPU / RAM / disk monitoring
+- Container metrics
+- Logs exploration (Loki)
+- Alerting
+
+Phase 2 will add:
+
+- Distributed tracing (Tempo)
+- Service graph
+- Node graph
+- Full request flow visibility
+
+---
+
+# 📁 Project Structure
+
+```text
+.
+├── docker-compose.yml
+├── grafana/
+├── swag/
+├── homer/
+├── docs/
+├── Makefile
+└── README.md
+```
+
+---
+
+# 📚 Documentation
+
+Additional docs available in:
+
+- `./docs/security.md`
+- `./docs/observability.md`
+- `./docs/networking.md`
+- `./docs/deployment.md`
+
+---
+
+# 🧩 Design Principles
+
+- **Observability-first**
+- **Composable architecture**
+- **Minimal external dependencies**
+- **Production-like local setup**
+- **Clear separation of concerns**
+
+---
+
+# 🚧 Roadmap
+
+## Phase 1 (current)
+- [x] Core platform
+- [x] Metrics + logs
+- [x] Dashboards
+- [x] Alerting
+- [x] Trace pipeline ready
+
+## Phase 2 (next)
+- [ ] Keycloak full configuration
+- [ ] OAuth2 Proxy protection
+- [ ] OTEL tracing activation
+- [ ] Service graph
+- [ ] Node graph
+- [ ] Logs ↔ traces correlation
+
+---
+
+# 🧠 Summary
 
 This stack turns Docker into a **mini platform**:
 
-* Access layer → SWAG + OAuth2 + Keycloak
-* Services → Grafana, Portainer, Homer
-* Observability → Prometheus + Loki + Tempo
-* Data → persistent volumes + Filebrowser
+- Access → SWAG
+- Security → Keycloak + OAuth2 *(Phase 2)*
+- Services → Grafana, Portainer, Homer
+- Observability → Prometheus + Loki + Tempo
+- Data → persistent volumes + Filebrowser
 
----
-
-Perfect for **DevOps, homelab, and small production setups**.
+➡️ Ready for future expansion:
+- Supabase backend
+- Geospatial platform
+- Custom APIs
