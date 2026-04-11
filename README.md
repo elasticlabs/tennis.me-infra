@@ -84,7 +84,6 @@ Includes:
 # 🔗 System Architecture
 
 ```mermaid
-flowchart TB
 
 flowchart TB
 
