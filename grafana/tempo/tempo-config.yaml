@@ -15,10 +15,25 @@ ingester:
 
 compactor:
   compaction:
-    block_retention: 48h
+    block_retention: 24h
+
+metrics_generator:
+  ring:
+    kvstore:
+      store: inmemory
+  processor:
+    local_blocks:
+      filter_server_spans: false
+      flush_to_storage: true
 
 storage:
   trace:
     backend: local
     local:
       path: /var/tempo/traces
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+        - local-blocks
