@@ -94,9 +94,13 @@ flowchart TB
     OAuth2Proxy --> Keycloak
     Keycloak --> OAuth2Proxy
 
-    Services --> Grafana
-    Services --> Portainer
-    Services --> Homer
+    SWAG --> Grafana
+    SWAG --> Portainer
+    SWAG --> Homer
+
+    subgraph Services
+        Services --> Deployed stack
+    end
 
     subgraph Observability
         Prometheus --> Grafana
