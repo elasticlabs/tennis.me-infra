@@ -236,7 +236,7 @@ services:
     <<: *service-defaults
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.56.2
+    image: gcr.io/cadvisor/cadvisor:latest
     container_name: ${COMPOSE_PROJECT_NAME}_cadvisor
     privileged: true
     devices:
