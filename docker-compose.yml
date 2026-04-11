@@ -158,8 +158,8 @@ services:
         camptocamp-prometheus-alertmanager-datasource,
         vonage-status-panel
     volumes:
-      - ./grafana/grafana//provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
+      - ./grafana/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     restart: unless-stopped
     expose:
@@ -196,6 +196,7 @@ services:
       - '--web.enable-lifecycle'   
     volumes:
       - ./grafana/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./grafana/prometheus/rules:/etc/prometheus/rules:ro
       - prometheus_data:/prometheus
     restart: unless-stopped
     expose:
@@ -207,11 +208,15 @@ services:
   alloy:
     image: grafana/alloy:latest
     container_name: ${COMPOSE_PROJECT_NAME}_alloy
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - /etc/alloy/config.alloy
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/log:/var/log:ro
-      - ./grafana/alloy/alloy-config.yml:/etc/alloy/alloy-config.yml:ro
+      - ./grafana/alloy/config.alloy:/etc/alloy/config.alloy:ro
     restart: unless-stopped
     expose:
       - "12345"
@@ -222,7 +227,7 @@ services:
   tempo:
     image: grafana/tempo:latest
     container_name: ${COMPOSE_PROJECT_NAME}_tempo
-    command: ["-config.file=/etc/tempo/tempo.yml"]
+    command: ["-config.file=/etc/tempo/tempo-config.yml"]
     volumes:
       - tempo_data:/var/tempo
       - ./grafana/tempo/tempo-config.yml:/etc/tempo/tempo-config.yml:ro
