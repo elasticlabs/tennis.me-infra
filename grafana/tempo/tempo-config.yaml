@@ -15,7 +15,7 @@ ingester:
 
 compactor:
   compaction:
-    block_retention: 48h # Retain blocks for 48 hours before deletion
+    block_retention: 48h
 
 storage:
   trace:

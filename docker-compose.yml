@@ -227,7 +227,8 @@ services:
   tempo:
     image: grafana/tempo:2.9.0
     container_name: ${COMPOSE_PROJECT_NAME}_tempo
-    command: ["-config.file=/etc/tempo/tempo-config.yaml"]
+    command:
+      - -config.file=/etc/tempo/tempo-config.yaml
     volumes:
       - tempo_data:/var/tempo
       - ./grafana/tempo/tempo-config.yaml:/etc/tempo/tempo-config.yaml:ro
@@ -239,7 +240,7 @@ services:
     logging: *default-logging
     networks:
       - revproxy_apps
-
+  
   node-exporter:
     image: prom/node-exporter:latest
     container_name: ${COMPOSE_PROJECT_NAME}_node-exporter
