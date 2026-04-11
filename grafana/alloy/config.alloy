@@ -136,6 +136,7 @@ discovery.relabel "prometheus_targets" {
       stack       = "zone-proxy",
       domain      = "admin",
       role        = "observability-ui",
+      env         = "prod",
     },
     {
       __address__ = "prometheus:9090",
@@ -144,6 +145,7 @@ discovery.relabel "prometheus_targets" {
       stack       = "zone-proxy",
       domain      = "admin",
       role        = "metrics",
+      env         = "prod",
     },
     {
       __address__ = "alertmanager:9093",
@@ -152,6 +154,7 @@ discovery.relabel "prometheus_targets" {
       stack       = "zone-proxy",
       domain      = "admin",
       role        = "alerting",
+      env         = "prod",
     },
     {
       __address__ = "keycloak:9000",
@@ -160,6 +163,7 @@ discovery.relabel "prometheus_targets" {
       stack       = "zone-proxy",
       domain      = "admin",
       role        = "iam",
+      env         = "prod",
     },
     {
       __address__ = "node-exporter:9100",
@@ -168,6 +172,7 @@ discovery.relabel "prometheus_targets" {
       stack       = "zone-proxy",
       domain      = "admin",
       role        = "host-metrics",
+      env         = "prod",
     },
     {
       __address__ = "cadvisor:8080",
@@ -176,6 +181,7 @@ discovery.relabel "prometheus_targets" {
       stack       = "zone-proxy",
       domain      = "admin",
       role        = "container-metrics",
+      env         = "prod",
     },
     {
       __address__ = "alloy:12345",
@@ -184,6 +190,7 @@ discovery.relabel "prometheus_targets" {
       stack       = "zone-proxy",
       domain      = "admin",
       role        = "collector",
+      env         = "prod",
     },
   ]
 
@@ -211,6 +218,11 @@ discovery.relabel "prometheus_targets" {
     source_labels = ["role"]
     target_label  = "role"
   }
+
+  rule {
+    source_labels = ["env"]
+    target_label  = "env"
+  }
 }
 
 prometheus.scrape "infra" {
@@ -230,20 +242,8 @@ prometheus.remote_write "prometheus" {
 }
 
 //////////////////////////////
-// OTLP RECEIVER -> SERVICEGRAPH + TEMPO
+// OTLP RECEIVER -> ATTRIBUTES -> SERVICEGRAPH + TEMPO
 //////////////////////////////
-
-otelcol.connector.servicegraph "default" {
-  dimensions = ["http.method"]
-
-  output {
-    metrics = [otelcol.exporter.prometheus.servicegraph.input]
-  }
-}
-
-otelcol.exporter.prometheus "servicegraph" {
-  forward_to = [prometheus.remote_write.prometheus.receiver]
-}
 
 otelcol.receiver.otlp "default" {
   grpc {
@@ -255,11 +255,47 @@ otelcol.receiver.otlp "default" {
   }
 
   output {
+    traces = [otelcol.processor.attributes.traces_enrich.input]
+  }
+}
+
+otelcol.processor.attributes "traces_enrich" {
+  action {
+    key    = "deployment.environment"
+    action = "upsert"
+    value  = "prod"
+  }
+
+  action {
+    key    = "host.name"
+    action = "upsert"
+    value  = "homeserver-01"
+  }
+
+  action {
+    key    = "service.namespace"
+    action = "upsert"
+    value  = "zone-proxy"
+  }
+
+  output {
     traces = [
       otelcol.connector.servicegraph.default.input,
       otelcol.processor.batch.default.input,
     ]
   }
+}
+
+otelcol.connector.servicegraph "default" {
+  dimensions = ["http.method", "http.route", "http.status_code"]
+
+  output {
+    metrics = [otelcol.exporter.prometheus.servicegraph.input]
+  }
+}
+
+otelcol.exporter.prometheus "servicegraph" {
+  forward_to = [prometheus.remote_write.prometheus.receiver]
 }
 
 otelcol.processor.batch "default" {
