@@ -86,6 +86,8 @@ Includes:
 ```mermaid
 flowchart TB
 
+flowchart TB
+
     Internet --> SWAG
 
     SWAG --> OAuth2Proxy
@@ -99,7 +101,7 @@ flowchart TB
     SWAG --> Homer
 
     subgraph Services
-        Services --> Other_stack
+        Hosted-stack
     end
 
     subgraph Observability
